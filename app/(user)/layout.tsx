@@ -1,4 +1,4 @@
-import '../../styles/global.css'; // Hoặc đường dẫn chính xác tới global.css
+import '../../styles/global.css'; 
 
 export const metadata = {
   title: 'User Dashboard | TutorHub',
@@ -13,9 +13,7 @@ export default function UserLayout({
   return (
     <html lang="vi">
       <body>
-        {/* Ví dụ: <Topbar /> */}
         <main>{children}</main>
-        {/* Ví dụ: <Footer /> */}
       </body>
     </html>
   )

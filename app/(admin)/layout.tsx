@@ -1,4 +1,4 @@
-import '../../styles/global.css'; // Hoặc đường dẫn chính xác tới global.css
+import '../../styles/global.css'; 
 
 export const metadata = {
   title: 'Admin Dashboard | TutorHub',

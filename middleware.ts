@@ -13,15 +13,15 @@ export function middleware(request: NextRequest) {
   console.log(`Request path: ${pathname}`);
 
   // Các đường dẫn công khai không cần xác thực
-  const publicPaths = ['/login', '/api/auth/login' , '/register' ]; // Thêm các API route công khai nếu có
+  const publicPaths = ['/login', '/api/auth/login' , '/register' , '/forgot-password']; // Thêm các API route công khai nếu có
 
   // Tránh chuyển hướng cho các tài nguyên Next.js và file tĩnh
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
     publicPaths.includes(pathname) || // Cho phép truy cập các trang/API trong publicPaths
-    pathname.endsWith('.ico') || // favicon
-    pathname.endsWith('.png') || // images
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.png') || 
     pathname.endsWith('.jpg') ||
     pathname.endsWith('.svg')
   ) {

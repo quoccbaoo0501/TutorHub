@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
+import { ForgotPasswordForm } from "@/components/forms/ForgotPasswordForm"
 import { ThemeToggle } from "@/components/theme-toggle"
-import RegisterForm from "@/components/forms/RegisterForm"
 
 export const metadata: Metadata = {
-  title: "Đăng ký | Trung tâm Gia sư",
-  description: "Đăng ký vào hệ thống quản lý trung tâm gia sư",
+  title: "Quên mật khẩu | TutorHub",
+  description: "Quên mật khẩu năng nhập vào hệ thống quản lý trung tâm gia sư",
 }
 
 export default function LoginPage() {
@@ -18,7 +18,7 @@ export default function LoginPage() {
       </div>
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm lg:w-96">
-          <RegisterForm />
+          <ForgotPasswordForm />
         </div>
       </div>
     </div>
