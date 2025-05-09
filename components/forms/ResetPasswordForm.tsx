@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export function ForgotPasswordForm() {
+export default function ResetPasswordForm() {
   // State để lưu trữ email người dùng nhập vào
   const [email, setEmail] = useState("")
 

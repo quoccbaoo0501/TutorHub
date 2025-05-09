@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Đăng ký vào hệ thống quản lý trung tâm gia sư",
 }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center relative">
       <div className="absolute top-4 left-4 z-10">

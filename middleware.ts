@@ -13,7 +13,12 @@ export function middleware(request: NextRequest) {
   console.log(`Request path: ${pathname}`);
 
   // Các đường dẫn công khai không cần xác thực
-  const publicPaths = ['/login', '/api/auth/login' , '/register' , '/forgot-password']; // Thêm các API route công khai nếu có
+  const publicPaths = [
+    '/login', '/login/',
+    '/api/auth/login', '/api/auth/login/',
+    '/register', '/register/',
+    '/reset-password', '/reset-password/'
+  ]; // Thêm các API route công khai nếu có
 
   // Tránh chuyển hướng cho các tài nguyên Next.js và file tĩnh
   if (

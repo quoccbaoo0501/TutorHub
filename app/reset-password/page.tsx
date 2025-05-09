@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { ForgotPasswordForm } from "@/components/forms/ForgotPasswordForm"
+import ResetPasswordForm from "@/components/forms/ResetPasswordForm"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export const metadata: Metadata = {
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Quên mật khẩu năng nhập vào hệ thống quản lý trung tâm gia sư",
 }
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center relative">
       <div className="absolute top-4 left-4 z-10">
@@ -18,7 +18,7 @@ export default function LoginPage() {
       </div>
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm lg:w-96">
-          <ForgotPasswordForm />
+          <ResetPasswordForm />
         </div>
       </div>
     </div>
