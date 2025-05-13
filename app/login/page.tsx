@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import  LoginForm  from "@/components/forms/LoginForm"
+import  LoginForm  from "@/components/forms/login-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export const metadata: Metadata = {

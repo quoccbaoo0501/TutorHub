@@ -1,82 +1,102 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ResetPasswordForm() {
-  // State để lưu trữ email người dùng nhập vào
   const [email, setEmail] = useState("")
-
-  // State để theo dõi trạng thái loading của form (ví dụ: khi đang gửi request)
   const [isLoading, setIsLoading] = useState(false)
-  // State để lưu trữ thông báo lỗi (nếu có)
   const [error, setError] = useState<string | null>(null)
-  
-  const router = useRouter() // Hook để điều hướng giữa các trang
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const router = useRouter()
 
-  // Hàm xử lý khi người dùng submit form đăng nhập
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault() // Ngăn chặn hành vi mặc định của form (tải lại trang)
-    setIsLoading(true) // Bắt đầu trạng thái loading
-    setError(null)     // Xóa lỗi cũ (nếu có)
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      // TODO: Implement actual password reset logic (e.g., API call)
+      await new Promise((resolve) => setTimeout(resolve, 1500)) // Simulate API call
+
+      // For demonstration, assume success if email is provided
+      if (email) {
+        setSuccessMessage("Nếu email của bạn tồn tại trong hệ thống, bạn sẽ nhận được một liên kết đặt lại mật khẩu.")
+        // Optionally, redirect or clear form
+        // setEmail("") 
+      } else {
+        setError("Vui lòng nhập địa chỉ email của bạn.")
+      }
+    } catch (err) {
+      setError("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu</CardTitle>
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-2xl font-bold">Quên mật khẩu</CardTitle>
+        <CardDescription>
+          Nhập email của bạn để nhận liên kết đặt lại mật khẩu.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          {/* Hiển thị thông báo lỗi nếu có */} 
+        <form onSubmit={handleResetPassword} className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading} // Vô hiệu hóa input khi đang loading
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {/* Hiển thị spinner và text khác nhau tùy theo trạng thái loading */} 
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Đang gửi..
-              </>
-            ) : (
-              "Lấy lại mật khẩu"
-            )}
-          </Button>
+          {successMessage && (
+            <Alert variant="default"> {/* Changed to default variant for success */}
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
+          {!successMessage && ( // Only show email input if success message is not shown
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          )}
+          {!successMessage && (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang gửi...
+                </>
+              ) : (
+                "Gửi liên kết đặt lại"
+              )}
+            </Button>
+          )}
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
-          Trở về trang đăng nhập?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Đăng nhập
-          </Link>
-        </div>        
+      <CardFooter className="text-center">
+        <Link href="/login" className="text-sm text-primary hover:underline w-full">
+          Quay lại Đăng nhập
+        </Link>
       </CardFooter>
     </Card>
   )
-}
+} 

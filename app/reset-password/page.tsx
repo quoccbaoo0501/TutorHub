@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import ResetPasswordForm from "@/components/forms/ResetPasswordForm"
+import ResetPasswordForm from "@/components/forms/resetpass-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export const metadata: Metadata = {

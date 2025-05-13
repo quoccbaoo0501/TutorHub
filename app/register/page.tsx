@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { ThemeToggle } from "@/components/theme-toggle"
-import RegisterForm from "@/components/forms/RegisterForm"
+import RegisterForm from "@/components/forms/register-form"
 
 export const metadata: Metadata = {
   title: "Đăng ký | Trung tâm Gia sư",

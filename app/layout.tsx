@@ -13,8 +13,8 @@ export default function RootLayout({ children, }: Readonly <{ children: React.Re
       <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}

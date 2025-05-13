@@ -1,4 +1,5 @@
-import '../../styles/global.css'; 
+import '../globals.css';
+import ClientLayout from '@/components/layout/client-layout';
 
 export const metadata = {
   title: 'User Dashboard | TutorHub',
@@ -11,10 +12,8 @@ export default function UserLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi">
-      <body>
-        <main>{children}</main>
-      </body>
-    </html>
+    <ClientLayout>
+      {children}
+    </ClientLayout>
   )
 }

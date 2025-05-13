@@ -17,7 +17,9 @@ export function middleware(request: NextRequest) {
     '/login', '/login/',
     '/api/auth/login', '/api/auth/login/',
     '/register', '/register/',
-    '/reset-password', '/reset-password/'
+    '/reset-password', '/reset-password/',
+    '/dashboard', '/dashboard/', // Added dashboard for testing
+    '/dashboards', '/dashboards/' 
   ]; // Thêm các API route công khai nếu có
 
   // Tránh chuyển hướng cho các tài nguyên Next.js và file tĩnh
