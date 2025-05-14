@@ -40,6 +40,11 @@ export async function middleware(req: NextRequest) {
     // Chuyển hướng người dùng đến trang đăng nhập
     return NextResponse.redirect(redirectUrl)
   }
+  //Check role user là tutor/customer hay là admin/staff
+  if( role === "tutor" || role === "customer"){
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/(user)/dashboard'
+  }
 
   // Nếu người dùng hợp lệ hoặc truy cập trang công khai, tiếp tục xử lý request
   return res
