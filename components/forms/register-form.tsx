@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { supabase } from "@/lib/supabase/supabase"
 
 export default function RegisterForm() {
   // State cho các trường nhập liệu của người dùng
@@ -30,19 +31,25 @@ export default function RegisterForm() {
 
 
   // State cho việc kiểm soát UI
-  const [showPassword, setShowPassword] = useState(false) // Bật/tắt hiển thị mật khẩu
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false) // Bật/tắt hiển thị mật khẩu xác nhận
-  const [isLoading, setIsLoading] = useState(false) // Theo dõi trạng thái loading khi submit form
-  const [error, setError] = useState<string | null>(null) // Lưu trữ thông báo lỗi đăng ký
-  const [userType, setUserType] = useState<"customer" | "tutor">("customer") // Lưu trữ loại người dùng được chọn
+  
+  // Bật/tắt hiển thị mật khẩu
+  const [showPassword, setShowPassword] = useState(false)
+  // Bật/tắt hiển thị mật khẩu xác nhận
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false) 
+  // Theo dõi trạng thái loading khi submit form
+  const [isLoading, setIsLoading] = useState(false) 
+  // Lưu trữ thông báo lỗi đăng ký
+  const [error, setError] = useState<string | null>(null) 
+  // Lưu trữ loại người dùng được chọn
+  const [userType, setUserType] = useState<"customer" | "tutor">("customer") 
 
   const router = useRouter() // Hook của Next.js để điều hướng
 
   // Xử lý sự kiện submit form đăng ký người dùng
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault() // Ngăn chặn hành vi mặc định của form (tải lại trang)
-    setIsLoading(true) // Đặt trạng thái loading thành true trong quá trình submit
-    setError(null)     // Xóa mọi thông báo lỗi trước đó
+    e.preventDefault() 
+    setIsLoading(true) 
+    setError(null)    
 
     // Kiểm tra cơ bản: Mật khẩu và xác nhận mật khẩu phải khớp
     if (password !== confirmPassword) {
@@ -52,31 +59,44 @@ export default function RegisterForm() {
     }
 
     try {
-      // TODO: Thay thế bằng logic đăng ký thực tế với backend.
-      // Phần này hiện tại mô phỏng một yêu cầu mạng.
-      // Nhớ gửi tất cả dữ liệu người dùng liên quan (email, password, userType, fullName, phoneNumber, address)
-      // và thông tin gia sư (education, experience, subjects) nếu userType là 'tutor'
-      // đến API endpoint của backend để tạo tài khoản.
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Gọi API Supabase để đăng ký người dùng mới với email và mật khẩu
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            role: userType, 
+          }
+        }
+      });
 
-      // Logic giả lập thành công: Ghi log dữ liệu và điều hướng đến dashboard
-      // Trong ứng dụng thực tế, điều này sẽ xảy ra sau khi có phản hồi thành công từ backend.
-      const registrationData: any = { email, password, userType, fullName, phoneNumber, address };
-      if (userType === "tutor") {
-        registrationData.education = education;
-        registrationData.experience = experience;
-        registrationData.subjects = subjects;
+      // Xử lý kết quả từ Supabase
+      if (error) {
+        // Nếu có lỗi từ Supabase Auth, hiển thị lỗi
+        setError(error.message);
+        console.error("Sign up error:", error);
+      } else if (data.user) {
+
+        // Nếu đăng ký thành công (người dùng được tạo)
+        // TODO: Tại đây, bạn có thể chèn thêm dữ liệu người dùng vào bảng 'profiles' hoặc các bảng khác
+        // Ví dụ: await supabase.from('profiles').insert([{ user_id: data.user.id, fullName, phoneNumber, address, user_type: userType }]);
+        // Nếu userType là tutor, bạn cũng có thể chèn thông tin gia sư vào bảng riêng.
+        console.log("User signed up:", data.user);
+        // Chuyển hướng người dùng sau khi đăng ký thành công
+        router.push("/dashboard"); // Hoặc trang xác nhận email, trang profile...
+        router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
+      } else {
+        // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
+        setError("Đã xảy ra lỗi không mong muốn trong quá trình đăng ký.");
       }
-      console.log("Đăng ký với:", registrationData)
-      router.push("/dashboard") // Điều hướng đến dashboard khi đăng ký thành công
-      router.refresh()          // Tải lại server components nếu cần
 
-    } catch (err) {
-      // Xử lý bất kỳ lỗi không mong muốn nào trong quá trình đăng ký
-      setError("Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.")
+    } catch (err: any) {
+      // Xử lý các lỗi không mong muốn khác trong quá trình thực thi (ví dụ: lỗi mạng)
+      setError(err.message);
+      console.error("Unexpected error:", err);
     } finally {
-      // Khối này thực thi bất kể thành công hay thất bại
-      setIsLoading(false) // Reset trạng thái loading khi quá trình submit hoàn tất
+      // Luôn kết thúc trạng thái loading dù thành công hay thất bại
+      setIsLoading(false);
     }
   }
 
@@ -87,6 +107,7 @@ export default function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignUp} className="space-y-4">
+          {/* Hiển thị thông báo lỗi nếu có */} 
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -260,7 +281,7 @@ export default function RegisterForm() {
             </div>
           </div>
 
-          {/* Nút Submit với chỉ báo trạng thái loading */}
+          {/* Nút Submit với chỉ báo trạng thái loading */} 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>

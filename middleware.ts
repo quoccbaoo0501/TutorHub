@@ -1,49 +1,46 @@
-//NextRequest đại diện cho một HTTP request , NextResponse đại diện cho HTTP response
-import { NextRequest, NextResponse } from 'next/server'; 
+// Import hàm tạo Supabase middleware client và các kiểu dữ liệu cần thiết
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-// Khởi tạo hàm middleware với tham số là đầu vào là đối tượng NextRequest , chứa toàn bộ thông tin về Request hiện tại
-export function middleware(request: NextRequest) {
-  //Lấy giá trị hiện tại của cookie sessionToken  , mục đíhc xem người dùng đăng nhập hay chưa
-  const sessionToken = request.cookies.get('sessionToken')?.value; 
+// Middleware chính để xử lý tất cả request
+export async function middleware(req: NextRequest) {
+  // Tạo response mặc định để tiếp tục xử lý request nếu không có gì chặn
+  const res = NextResponse.next()
 
-  //
-  const { pathname } = request.nextUrl;
+  // Khởi tạo Supabase client cho middleware
+  // Thư viện này sẽ tự động đọc và ghi cookie để duy trì phiên đăng nhập
+  const supabase = createMiddlewareClient({ req, res })
 
-  // Log path để dễ debug
-  console.log(`Request path: ${pathname}`);
+  // Lấy thông tin người dùng hiện tại từ Supabase
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
-  // Các đường dẫn công khai không cần xác thực
-  const publicPaths = [
-    '/login', '/login/',
-    '/api/auth/login', '/api/auth/login/',
-    '/register', '/register/',
-    '/reset-password', '/reset-password/',
-    '/dashboard', '/dashboard/', // Added dashboard for testing
-    '/dashboards', '/dashboards/' 
-  ]; // Thêm các API route công khai nếu có
+  const role = user?.user_metadata?.role
 
-  // Tránh chuyển hướng cho các tài nguyên Next.js và file tĩnh
-  if (
-    pathname.startsWith('/_next/') ||
-    pathname.startsWith('/static/') ||
-    publicPaths.includes(pathname) || // Cho phép truy cập các trang/API trong publicPaths
-    pathname.endsWith('.ico') ||
-    pathname.endsWith('.png') || 
-    pathname.endsWith('.jpg') ||
-    pathname.endsWith('.svg')
-  ) {
-    return NextResponse.next();
-  }
-  
-  // Nếu không có token và không ở trang công khai, chuyển hướng đến /login
-  if (!sessionToken) {
-    console.log('No session token, redirecting to /login');
-    const loginUrl = new URL('/login', request.url);
-    // Thêm redirect_url để sau khi đăng nhập có thể quay lại trang trước đó
-    loginUrl.searchParams.set('redirect_url', pathname);
-    return NextResponse.redirect(loginUrl);
+  // Lấy đường dẫn hiện tại của request
+  const { pathname } = req.nextUrl
+
+  // Định nghĩa các đường dẫn cần bảo vệ (chỉ người dùng đăng nhập mới được truy cập)
+  const protectedPaths = ['/dashboard' , '/dashboard/']
+
+  // Kiểm tra xem đường dẫn hiện tại có nằm trong danh sách cần bảo vệ không
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+
+  // Nếu người dùng chưa đăng nhập và đang cố vào trang cần bảo vệ
+  if (isProtected && !user) {
+    // Tạo URL mới để chuyển hướng người dùng đến trang đăng nhập
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/login'
+    
+    // Gắn thông tin đường dẫn gốc để sau khi đăng nhập có thể quay lại
+    redirectUrl.searchParams.set('redirect_url', pathname)
+
+    // Chuyển hướng người dùng đến trang đăng nhập
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Nếu có token, cho phép tiếp tục
-  return NextResponse.next();
+  // Nếu người dùng hợp lệ hoặc truy cập trang công khai, tiếp tục xử lý request
+  return res
 }

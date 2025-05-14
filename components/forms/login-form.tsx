@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { supabase } from "@/lib/supabase/supabase";
 
 export default function LoginForm() {
   // State để lưu trữ email người dùng nhập vào
@@ -32,24 +33,36 @@ export default function LoginForm() {
     setIsLoading(true) // Bắt đầu trạng thái loading
     setError(null)     // Xóa lỗi cũ (nếu có)
 
-    try {
-      // TODO: Thay thế bằng logic xác thực thực tế với backend
-      // Đoạn code này chỉ mô phỏng việc chờ đợi server phản hồi
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    try { 
+      // Gọi API Supabase để đăng nhập người dùng với email và mật khẩu
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-      // Ví dụ kiểm tra thông tin đăng nhập (logic này nên ở backend)
-      if (email === "admin@example.com" && password === "password") {
-        router.push("/dashboard") // Điều hướng đến trang dashboard nếu thành công
-        router.refresh()          // Tải lại dữ liệu trên trang mới (nếu cần thiết cho Server Components)
+      // Xử lý kết quả từ Supabase
+      if (error) {
+        // Nếu có lỗi từ Supabase Auth, hiển thị lỗi
+        setError(error.message);
+        console.error("Login error:", error);
+      } else if (data.user) {
+        // Nếu đăng nhập thành công
+        console.log("User logged in:", data.user);
+        // Chuyển hướng người dùng đến trang dashboard hoặc trang khác sau khi đăng nhập thành công
+        router.push("/dashboard");
+        router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
       } else {
-        setError("Email hoặc mật khẩu không chính xác.")
+        // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
+        setError("Đã xảy ra lỗi không mong muốn trong quá trình đăng nhập.");
       }
-    } catch (err) {
-      // Xử lý các lỗi không mong muốn từ quá trình xác thực
-      setError("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.")
+
+    } catch (err: any) {
+      // Xử lý các lỗi không mong muốn khác trong quá trình thực thi (ví dụ: lỗi mạng)
+      setError(err.message);
+      console.error("Unexpected error:", err);
     } finally {
-      // Dù thành công hay thất bại, kết thúc trạng thái loading
-      setIsLoading(false)
+      // Luôn kết thúc trạng thái loading dù thành công hay thất bại
+      setIsLoading(false);
     }
   }
 

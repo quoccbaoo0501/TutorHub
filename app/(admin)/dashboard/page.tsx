@@ -8,7 +8,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total Users</CardTitle>
+            <CardTitle>Số lượng khách hàng đã đăng kí</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 text-2xl">1,200</p>
@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Classes</CardTitle>
+            <CardTitle>Số lượng lớp đã đăng kí</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 text-2xl">150</p>
@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Contracts</CardTitle>
+            <CardTitle>Số lượng hợp đồng</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 text-2xl">500</p>
@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Revenue (MTD)</CardTitle>
+            <CardTitle>Doanh thu</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 text-2xl">$15,000</p>
