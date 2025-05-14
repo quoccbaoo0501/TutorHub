@@ -21,14 +21,42 @@ export default function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
   // State để lưu trữ thông báo lỗi (nếu có)
   const [error, setError] = useState<string | null>(null)
-  
-  const router = useRouter() // Hook để điều hướng giữa các trang
+  // State để lưu trữ thông báo thành công (nếu có)
+  const [success, setSuccess] = useState<string | null>(null)
 
-  // Hàm xử lý khi người dùng submit form đăng nhập
-  const handleLogin = async (e: React.FormEvent) => {
+
+  // Hàm xử lý khi người dùng submit form quên mật khẩu
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault() // Ngăn chặn hành vi mặc định của form (tải lại trang)
     setIsLoading(true) // Bắt đầu trạng thái loading
     setError(null)     // Xóa lỗi cũ (nếu có)
+    setSuccess(null)   // Xóa thông báo thành công cũ (nếu có)
+
+    try {
+      // Gửi yêu cầu reset mật khẩu đến API
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      // Phân tích dữ liệu phản hồi
+      const data = await response.json()
+
+      // Kiểm tra nếu yêu cầu không thành công
+      if (!response.ok) {
+        setError(data.message || "Đã xảy ra lỗi khi gửi yêu cầu.") // Lấy thông báo lỗi từ phản hồi hoặc dùng thông báo mặc định
+      } else {
+        setSuccess(data.message || "Yêu cầu đã được gửi. Vui lòng kiểm tra email của bạn.") // Lấy thông báo thành công hoặc dùng thông báo mặc định
+      }
+    } catch (err) {
+      // Xử lý lỗi mạng hoặc các lỗi khác
+      setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false) // Kết thúc trạng thái loading bất kể thành công hay thất bại
+    }
   }
 
   return (
@@ -37,11 +65,17 @@ export default function ResetPasswordForm() {
         <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          {/* Hiển thị thông báo lỗi nếu có */} 
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          {/* Hiển thị thông báo lỗi nếu có */}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {/* Hiển thị thông báo thành công nếu có */}
+          {success && (
+            <Alert variant="default">
+              <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
           <div className="space-y-2">
