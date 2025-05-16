@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { supabase } from "@/lib/supabase/supabase"
 
 export default function ResetPasswordForm() {
   // State để lưu trữ email người dùng nhập vào
@@ -34,28 +35,20 @@ export default function ResetPasswordForm() {
 
     try {
       // Gửi yêu cầu reset mật khẩu đến API
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "http://localhost:3000/reset-password/confirm-reset"
       })
+      
 
-      // Phân tích dữ liệu phản hồi
-      const data = await response.json()
-
-      // Kiểm tra nếu yêu cầu không thành công
-      if (!response.ok) {
-        setError(data.message || "Đã xảy ra lỗi khi gửi yêu cầu.") // Lấy thông báo lỗi từ phản hồi hoặc dùng thông báo mặc định
+      if (error) {
+        setError(error.message)
       } else {
-        setSuccess(data.message || "Yêu cầu đã được gửi. Vui lòng kiểm tra email của bạn.") // Lấy thông báo thành công hoặc dùng thông báo mặc định
+        setSuccess("Yêu cầu đã được gửi. Vui lòng kiểm tra email của bạn.")
       }
     } catch (err) {
-      // Xử lý lỗi mạng hoặc các lỗi khác
       setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.")
     } finally {
-      setIsLoading(false) // Kết thúc trạng thái loading bất kể thành công hay thất bại
+      setIsLoading(false)
     }
   }
 

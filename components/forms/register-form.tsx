@@ -77,13 +77,11 @@ export default function RegisterForm() {
         console.error("Sign up error:", error);
       } else if (data.user) {
 
-        // Nếu đăng ký thành công (người dùng được tạo)
-        // TODO: Tại đây, bạn có thể chèn thêm dữ liệu người dùng vào bảng 'profiles' hoặc các bảng khác
-        // Ví dụ: await supabase.from('profiles').insert([{ user_id: data.user.id, fullName, phoneNumber, address, user_type: userType }]);
-        // Nếu userType là tutor, bạn cũng có thể chèn thông tin gia sư vào bảng riêng.
+        // await supabase.from('profiles').insert([{ user_id: data.user.id, fullName, phoneNumber, address, user_type: userType }]);
+
         console.log("User signed up:", data.user);
         // Chuyển hướng người dùng sau khi đăng ký thành công
-        router.push("/dashboard"); // Hoặc trang xác nhận email, trang profile...
+        router.push("/login"); // Hoặc trang xác nhận email, trang profile...
         router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
       } else {
         // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
@@ -118,15 +116,14 @@ export default function RegisterForm() {
           <div className="grid grid-cols-2 gap-2 pb-2">
             <Button
               type="button"
-              variant={userType === "customer" ? "default" : "outline"} // Variant động dựa trên lựa chọn
-              onClick={() => setUserType("customer")}
+              variant={userType === "customer" ? "default" : "outline"} 
               disabled={isLoading}
             >
               Khách hàng
             </Button>
             <Button
               type="button"
-              variant={userType === "tutor" ? "default" : "outline"} // Variant động dựa trên lựa chọn
+              variant={userType === "tutor" ? "default" : "outline"} 
               onClick={() => setUserType("tutor")}
               disabled={isLoading}
             >
@@ -134,7 +131,6 @@ export default function RegisterForm() {
             </Button>
           </div>
 
-          {/* Trường nhập liệu Email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -148,7 +144,6 @@ export default function RegisterForm() {
             />
           </div>
 
-          {/* Trường nhập liệu Họ và tên */}
           <div className="space-y-2">
             <Label htmlFor="fullName">Họ và tên</Label>
             <Input
@@ -162,21 +157,18 @@ export default function RegisterForm() {
             />
           </div>
 
-          {/* Trường nhập liệu Số điện thoại */}
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Số điện thoại</Label>
             <Input
               id="phoneNumber"
-              type="tel" // Loại input cho số điện thoại
+              type="tel" 
               placeholder="(028) 372 52002"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              // Thêm validation cụ thể hơn nếu cần (ví dụ: regex cho định dạng điện thoại)
               disabled={isLoading}
             />
           </div>
 
-          {/* Trường nhập liệu Địa chỉ */}
           <div className="space-y-2">
             <Label htmlFor="address">Địa chỉ</Label>
             <Input
@@ -185,12 +177,10 @@ export default function RegisterForm() {
               placeholder="Khu phố 6, P.Linh Trung, Tp.Thủ Đức"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              // Thêm validation cụ thể hơn nếu cần
               disabled={isLoading}
             />
           </div>
 
-          {/* Các trường thông tin bổ sung cho Gia sư */} 
           {userType === "tutor" && (
             <>
               <div className="space-y-2">
@@ -206,7 +196,7 @@ export default function RegisterForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="experience">Kinh nghiệm</Label>
-                <Input // Có thể đổi thành Textarea nếu cần nhập nhiều hơn
+                <Input 
                   id="experience"
                   type="text"
                   placeholder="2 năm dạy Lập trình cấp 3..."
@@ -229,24 +219,23 @@ export default function RegisterForm() {
             </>
           )}
 
-          {/* Trường nhập liệu Mật khẩu với nút bật/tắt hiển thị */}
           <div className="space-y-2">
             <Label htmlFor="password">Mật khẩu</Label>
             <div className="relative">
               <Input
                 id="password"
-                type={showPassword ? "text" : "password"} // Thay đổi type động để hiển thị/ẩn
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
               <Button
-                type="button" // Quan trọng: type="button" để không submit form
+                type="button" 
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full px-3" // Định vị nút icon bên trong input
-                onClick={() => setShowPassword(!showPassword)} // Bật/tắt state hiển thị mật khẩu
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => setShowPassword(!showPassword)} 
                 disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -255,23 +244,22 @@ export default function RegisterForm() {
             </div>
           </div>
 
-          {/* Trường nhập liệu Xác nhận mật khẩu với nút bật/tắt hiển thị */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"} // Thay đổi type động để hiển thị/ẩn
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
               <Button
-                type="button" // Quan trọng: type="button" để không submit form
+                type="button" 
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full px-3" // Định vị nút icon bên trong input
+                className="absolute right-0 top-0 h-full px-3" 
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)} // Bật/tắt state hiển thị mật khẩu xác nhận
                 disabled={isLoading}
               >
@@ -281,7 +269,6 @@ export default function RegisterForm() {
             </div>
           </div>
 
-          {/* Nút Submit với chỉ báo trạng thái loading */} 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
