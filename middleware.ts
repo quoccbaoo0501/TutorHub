@@ -23,7 +23,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Định nghĩa các đường dẫn cần bảo vệ (chỉ người dùng đăng nhập mới được truy cập)
-  const protectedPaths = ['/dashboard' ,'/dashboard/']
+  const protectedPaths = ['/user/dashboard' ,'/user/dashboard/','/admin/dashboard/','/admin/dashboard/']
 
   // Kiểm tra xem đường dẫn hiện tại có nằm trong danh sách cần bảo vệ không
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
