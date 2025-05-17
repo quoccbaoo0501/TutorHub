@@ -3,50 +3,45 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/lib/supabase/supabase"
+import Link from "next/link"
 
-export default function ResetPasswordForm() {
-  // State để lưu trữ email người dùng nhập vào
+export default function ResetPasswordPage() {
   const [email, setEmail] = useState("")
-
-  // State để theo dõi trạng thái loading của form (ví dụ: khi đang gửi request)
   const [isLoading, setIsLoading] = useState(false)
-  // State để lưu trữ thông báo lỗi (nếu có)
   const [error, setError] = useState<string | null>(null)
-  // State để lưu trữ thông báo thành công (nếu có)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
-
-  // Hàm xử lý khi người dùng submit form quên mật khẩu
   const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault() // Ngăn chặn hành vi mặc định của form (tải lại trang)
-    setIsLoading(true) // Bắt đầu trạng thái loading
-    setError(null)     // Xóa lỗi cũ (nếu có)
-    setSuccess(null)   // Xóa thông báo thành công cũ (nếu có)
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+    setSuccess(false)
 
     try {
-      // Gửi yêu cầu reset mật khẩu đến API
+      // Gửi yêu cầu đặt lại mật khẩu cho email
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "http://localhost:3000/reset-password/confirm-reset"
+        // URL sẽ chuyển hướng sau khi đặt lại mật khẩu thành công
+        redirectTo: `${window.location.origin}/update-password`,
       })
-      
 
+      // Xử lý kết quả
       if (error) {
         setError(error.message)
+        console.error("Password reset error:", error)
       } else {
-        setSuccess("Yêu cầu đã được gửi. Vui lòng kiểm tra email của bạn.")
+        // Nếu thành công, hiển thị thông báo thành công
+        setSuccess(true)
       }
-    } catch (err) {
-      setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.")
+    } catch (err: any) {
+      setError(err.message)
+      console.error("Unexpected error:", err)
     } finally {
       setIsLoading(false)
     }
@@ -56,53 +51,56 @@ export default function ResetPasswordForm() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu</CardTitle>
+        <CardDescription className="text-center">Nhập email của bạn để nhận liên kết đặt lại mật khẩu</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleResetPassword} className="space-y-4">
-          {/* Hiển thị thông báo lỗi nếu có */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {/* Hiển thị thông báo thành công nếu có */}
-          {success && (
-            <Alert variant="default">
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading} // Vô hiệu hóa input khi đang loading
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {/* Hiển thị spinner và text khác nhau tùy theo trạng thái loading */} 
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Đang gửi..
-              </>
-            ) : (
-              "Lấy lại mật khẩu"
+        {success ? (
+          <Alert className="bg-green-50 border-green-200">
+            <AlertDescription className="text-green-800">
+              Liên kết đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang gửi...
+                </>
+              ) : (
+                "Gửi liên kết đặt lại"
+              )}
+            </Button>
+          </form>
+        )}
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
-          Trở về trang đăng nhập?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Đăng nhập
+      <CardFooter className="flex justify-center flex-col space-y-2">
+        <Link href="/login" className="text-primary hover:underline text-sm">
+          Quay lại đăng nhập
+        </Link>
+        {success && (
+          <Link href="https://mail.google.com/mail/u/0/#inbox" className="text-primary hover:underline text-sm" target="_blank">
+            Vào hòm thư Email của bạn
           </Link>
-        </div>        
+        )}
       </CardFooter>
     </Card>
   )

@@ -23,7 +23,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Định nghĩa các đường dẫn cần bảo vệ (chỉ người dùng đăng nhập mới được truy cập)
-  const protectedPaths = ['/dashboard' , '/dashboard/']
+  const protectedPaths = ['/dashboard' ,'/dashboard/']
 
   // Kiểm tra xem đường dẫn hiện tại có nằm trong danh sách cần bảo vệ không
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
@@ -43,7 +43,7 @@ export async function middleware(req: NextRequest) {
   //Check role user là tutor/customer hay là admin/staff
   if( role === "tutor" || role === "customer"){
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/(user)/dashboard'
+    redirectUrl.pathname = '/user/dashboard'
   }
 
   // Nếu người dùng hợp lệ hoặc truy cập trang công khai, tiếp tục xử lý request

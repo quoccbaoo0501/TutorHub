@@ -36,6 +36,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             <Link href="/payment" className="px-3 py-2 rounded hover:bg-gray-700 cursor-pointer">Payment</Link>
             <Link href="/profile" className="px-3 py-2 rounded hover:bg-gray-700 cursor-pointer">Profile</Link>
             <ThemeToggle />
+            <Link href="/profile" className="px-3 py-2 rounded hover:bg-gray-700 cursor-pointer text:bg-sky-700">Log out</Link>
           </div>
         </nav>
       </header>

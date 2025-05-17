@@ -1,4 +1,4 @@
-import ConfirmPasswordForm from "@/components/forms/confirm-pass"
+import ConfirmPasswordForm from "@/components/forms/updatepass-form"
 
 export default function ResetPasswordPage() {
   return (

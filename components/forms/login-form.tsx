@@ -48,8 +48,22 @@ export default function LoginForm() {
       } else if (data.user) {
         // Nếu đăng nhập thành công
         console.log("User logged in:", data.user);
-        // Chuyển hướng người dùng đến trang dashboard hoặc trang khác sau khi đăng nhập thành công
-        router.push("/dashboard");
+        // Lấy vai trò của người dùng từ user_metadata
+        const userRole = data.user.user_metadata.role;
+
+        // Chuyển hướng dựa trên vai trò
+        if (userRole === 'tutor' || userRole === 'customer') {
+          router.push("/user/dashboard");
+        } else if (userRole === 'admin' || userRole === 'staff') {
+          router.push("/admin/dashboard");
+        } else {
+          // Xử lý trường hợp vai trò không xác định (tùy chọn)
+          console.warn("Unknown user role:", userRole);
+          // Có thể chuyển hướng đến một trang mặc định hoặc hiển thị lỗi
+          // router.push("/default-dashboard");
+           router.push("/user/dashboard"); // Mặc định chuyển hướng về user dashboard
+        }
+
         router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
       } else {
         // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
