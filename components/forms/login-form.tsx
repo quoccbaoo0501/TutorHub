@@ -15,26 +15,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/lib/supabase/supabase";
 
 export default function LoginForm() {
-  // State để lưu trữ email người dùng nhập vào
   const [email, setEmail] = useState("")
-  // State để lưu trữ mật khẩu người dùng nhập vào
   const [password, setPassword] = useState("")
-  // State để kiểm soát việc hiển thị/ẩn mật khẩu
   const [showPassword, setShowPassword] = useState(false)
-  // State để theo dõi trạng thái loading của form (ví dụ: khi đang gửi request)
   const [isLoading, setIsLoading] = useState(false)
-  // State để lưu trữ thông báo lỗi (nếu có)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter() // Hook để điều hướng giữa các trang
 
-  // Hàm xử lý khi người dùng submit form đăng nhập
+  const router = useRouter() 
+
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault() // Ngăn chặn hành vi mặc định của form (tải lại trang)
-    setIsLoading(true) // Bắt đầu trạng thái loading
-    setError(null)     // Xóa lỗi cũ (nếu có)
+    e.preventDefault() 
+    setIsLoading(true) 
+    setError(null)     
 
     try { 
-      // Gọi API Supabase để đăng nhập người dùng với email và mật khẩu
+      // Call API Supabase để đăng nhập ng dùng với email vs pass
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -57,25 +52,19 @@ export default function LoginForm() {
         } else if (userRole === 'admin' || userRole === 'staff') {
           router.push("/admin/dashboard");
         } else {
-          // Xử lý trường hợp vai trò không xác định (tùy chọn)
-          console.warn("Unknown user role:", userRole);
-          // Có thể chuyển hướng đến một trang mặc định hoặc hiển thị lỗi
-          // router.push("/default-dashboard");
-           router.push("/user/dashboard"); // Mặc định chuyển hướng về user dashboard
+           router.push("/user/dashboard"); 
         }
 
-        router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
+        router.refresh(); 
       } else {
         // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
         setError("Đã xảy ra lỗi không mong muốn trong quá trình đăng nhập.");
       }
 
     } catch (err: any) {
-      // Xử lý các lỗi không mong muốn khác trong quá trình thực thi (ví dụ: lỗi mạng)
       setError(err.message);
       console.error("Unexpected error:", err);
     } finally {
-      // Luôn kết thúc trạng thái loading dù thành công hay thất bại
       setIsLoading(false);
     }
   }
@@ -102,7 +91,7 @@ export default function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={isLoading} // Vô hiệu hóa input khi đang loading
+              disabled={isLoading} 
             />
           </div>
           <div className="space-y-2">
@@ -112,22 +101,21 @@ export default function LoginForm() {
                 Quên mật khẩu?
               </Link>
             </div>
-            <div className="relative"> {/* Container cho input mật khẩu và nút hiển thị/ẩn */} 
+            <div className="relative"> 
               <Input
                 id="password"
-                type={showPassword ? "text" : "password"} // Thay đổi type để hiển thị/ẩn mật khẩu
+                type={showPassword ? "text" : "password"} 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
-              {/* Nút để chuyển đổi hiển thị mật khẩu */} 
               <Button
-                type="button" // Quan trọng: type="button" để không submit form
+                type="button" 
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full px-3" // Định vị nút ở cuối input
-                onClick={() => setShowPassword(!showPassword)} // Chuyển đổi state showPassword
+                className="absolute right-0 top-0 h-full px-3" 
+                onClick={() => setShowPassword(!showPassword)} 
                 disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -136,7 +124,6 @@ export default function LoginForm() {
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {/* Hiển thị spinner và text khác nhau tùy theo trạng thái loading */} 
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -51,6 +51,13 @@ export default function RegisterForm() {
     setIsLoading(true) 
     setError(null)    
 
+    //Để chắn chắc rằng không bị chỉnh sửa role trong dev tools
+    if (!['customer', 'tutor'].includes(userType)) {
+      setError("Vai trò không hợp lệ.");
+      setIsLoading(false);
+      return;
+    }
+
     // Kiểm tra cơ bản: Mật khẩu và xác nhận mật khẩu phải khớp
     if (password !== confirmPassword) {
       setError("Mật khẩu và xác nhận mật khẩu không khớp.")
@@ -76,12 +83,40 @@ export default function RegisterForm() {
         setError(error.message);
         console.error("Sign up error:", error);
       } else if (data.user) {
+        // Nếu đăng ký thành công trong auth.users
 
-        // await supabase.from('profiles').insert([{ user_id: data.user.id, fullName, phoneNumber, address, user_type: userType }]);
+        // Dữ liệu chung cho cả khách hàng và gia sư
+        const profileData: any = {
+          id: data.user.id, // Sử dụng id từ auth.users
+          email: data.user.email, // Sử dụng email từ auth.users
+          full_name: fullName,
+          phone_number: phoneNumber,
+          address: address,
+          role: userType, // role được lưu ở đây và user_metadata
+        };
 
-        console.log("User signed up:", data.user);
-        // Chuyển hướng người dùng sau khi đăng ký thành công
-        router.push("/login"); // Hoặc trang xác nhận email, trang profile...
+        // Thêm thông tin riêng cho gia sư nếu userType là 'tutor'
+        if (userType === 'tutor') {
+          profileData.education = education;
+          profileData.experience = experience;
+          profileData.subjects = subjects;
+        }
+
+        // Thêm bản ghi vào bảng profiles
+        const { error: profileError } = await supabase.from('profiles').insert([profileData]);
+
+        if (profileError) {
+          // Xử lý lỗi nếu không thể tạo profile (tùy chọn: có thể muốn xóa user vừa tạo trong auth.users nếu profile creation failed)
+          console.error("Error inserting profile:", profileError);
+          // Hiển thị lỗi cho người dùng hoặc chuyển hướng đến trang lỗi
+          setError("Đăng ký thành công, nhưng không thể lưu thông tin profile. Vui lòng liên hệ hỗ trợ.");
+          setIsLoading(false); // Đảm bảo tắt loading
+          return; // Dừng lại nếu lỗi tạo profile
+        }
+
+        console.log("User signed up and profile created:", data.user);
+        // Chuyển hướng người dùng sau khi đăng ký thành công và tạo profile
+        router.push("/login"); // Hoặc trang xác nhận email...
         router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
       } else {
         // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
@@ -105,7 +140,6 @@ export default function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignUp} className="space-y-4">
-          {/* Hiển thị thông báo lỗi nếu có */} 
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -116,7 +150,8 @@ export default function RegisterForm() {
           <div className="grid grid-cols-2 gap-2 pb-2">
             <Button
               type="button"
-              variant={userType === "customer" ? "default" : "outline"} 
+              variant={userType === "customer" ? "default" : "outline"}
+              onClick={() => setUserType("customer")}
               disabled={isLoading}
             >
               Khách hàng
@@ -149,7 +184,7 @@ export default function RegisterForm() {
             <Input
               id="fullName"
               type="text"
-              placeholder="Le Quoc Gia Bao"
+              placeholder="Kevin Baoo"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -199,7 +234,7 @@ export default function RegisterForm() {
                 <Input 
                   id="experience"
                   type="text"
-                  placeholder="2 năm dạy Lập trình cấp 3..."
+                  placeholder="10 điểm đồ án SE104..."
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
                   disabled={isLoading}
