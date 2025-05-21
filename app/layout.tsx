@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 export const metadata: Metadata = {
   title: "TutorHub",
   description: "Created by Kevin Baoo",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,7 +1,8 @@
 "use client"
-import type React from "react"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import type React from "react"
 import AdminSidebar from "@/components/layout/admin-layout"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
@@ -11,50 +12,50 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  })
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+    const checkAuthorization = async () => {
+      const supabase = createClientComponentClient({
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      })
 
-        if (!user) {
-          router.push("/login")
-          return
-        }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-        const role = user.user_metadata?.role
-
-        if (role !== "admin" && role !== "staff") {
-          console.log("Unauthorized access to admin area. Redirecting to user dashboard.")
-          router.push("/user/dashboard")
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error)
+      if (!session) {
         router.push("/login")
-      } finally {
-        setLoading(false)
+        return
       }
+
+      const userRole = session.user.user_metadata?.role
+
+      if (userRole !== "admin" && userRole !== "staff") {
+        console.log("Unauthorized access to admin area. Redirecting...")
+        router.push("/user/dashboard")
+        return
+      }
+
+      setIsAuthorized(true)
     }
 
-    checkUserRole()
-  }, [router, supabase])
+    checkAuthorization()
+  }, [router])
 
-  if (loading) {
+  // Hiển thị loading khi đang kiểm tra quyền
+  if (isAuthorized === null) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Đang kiểm tra quyền truy cập...</span>
       </div>
     )
   }
 
+  // Chỉ hiển thị nội dung khi đã được phép truy cập
   return (
     <div className="flex h-screen">
       <AdminSidebar />

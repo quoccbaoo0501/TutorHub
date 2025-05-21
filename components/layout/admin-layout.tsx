@@ -58,7 +58,7 @@ const AdminSidebar: React.FC = () => {
           <span className="text-sm font-medium">Theme</span>
           <ThemeToggle />
         </div>
-        <Link href="/admin/profile">
+        <Link href="/admin/profiles">
           <div className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
             <User className="mr-3 h-5 w-5" />
             Hồ sơ

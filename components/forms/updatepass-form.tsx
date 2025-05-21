@@ -19,45 +19,53 @@ export default function UpdatePasswordForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [isValidLink, setIsValidLink] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const router = useRouter()
-  //Kiểm tra user với session có hợp lệ hay không
+  const supabase = createClientComponentClient({
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  })
+
   useEffect(() => {
     const checkSession = async () => {
-      // Tạo client Supabase mới
-      const supabase = createClientComponentClient({
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      })
+      try {
+        console.log("Checking session...")
 
-      // Lấy thông tin phiên đăng nhập từ Supabase
-      const { data, error } = await supabase.auth.getSession()
+        // Lấy thông tin phiên hiện tại
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
 
-      console.log(error, data.session)
-
-      // Nếu không có session hoặc người dùng truy cập mà không qua luồng khôi phục
-      if (error || !data.session) {
-        setIsValidLink(false)
-        setError("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
-      } else {
-        // Lấy thông tin người dùng từ phiên
-        const { data: userData } = await supabase.auth.getUser()
-        if (userData && userData.user) {
-          if (userData.user.email) {
-            setUserEmail(userData.user.email)
-          } else {
-            setUserEmail(null)
-          }
+        if (sessionError) {
+          console.error("Error getting session:", sessionError)
+          throw sessionError
         }
+
+        if (!session) {
+          console.log("No session found")
+          setError("Không tìm thấy phiên đăng nhập. Vui lòng yêu cầu liên kết đặt lại mật khẩu mới.")
+          return
+        }
+
+        console.log("Session found, user:", session.user.email)
+
+        // Lấy thông tin người dùng
+        setUserEmail(session.user.email || null)
+      } catch (err) {
+        console.error("Error checking session:", err)
+        setError("Không thể xác thực phiên làm việc. Vui lòng yêu cầu liên kết đặt lại mật khẩu mới.")
+      } finally {
+        setChecking(false)
       }
     }
 
     checkSession()
-  }, [])
+  }, [supabase.auth])
 
   // Hàm handle form update pass dành cho user
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -72,12 +80,6 @@ export default function UpdatePasswordForm() {
     }
 
     try {
-      // Tạo client Supabase mới
-      const supabase = createClientComponentClient({
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      })
-
       const { error } = await supabase.auth.updateUser({
         password: password,
       })
@@ -89,6 +91,10 @@ export default function UpdatePasswordForm() {
       } else {
         // Nếu thành công, hiển thị thông báo và chuyển hướng đến trang đăng nhập sau 3 giây
         setSuccess(true)
+
+        // Đăng xuất để liên kết không thể được sử dụng lại từ lịch sử trình duyệt
+        await supabase.auth.signOut()
+
         setTimeout(() => {
           router.push("/login")
         }, 3000)
@@ -101,28 +107,46 @@ export default function UpdatePasswordForm() {
     }
   }
 
-  // Nếu liên kết không hợp lệ, hiển thị thông báo lỗi
-  if (!isValidLink) {
+  // Hiển thị trạng thái đang kiểm tra
+  if (checking) {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Liên kết không hợp lệ</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Đang xác thực</CardTitle>
+          <CardDescription className="text-center">
+            Vui lòng đợi trong khi chúng tôi xác thực phiên làm việc...
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex justify-center py-6">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Nếu có lỗi và chưa thành công
+  if (error && !success) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Lỗi xác thực</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <Alert variant="destructive">
-            <AlertDescription>
-              Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
-          {/* Nút để yêu cầu liên kết mới */}
-          <Button className="w-full mt-4" onClick={() => router.push("/reset-password")}>
+          <Button className="w-full" onClick={() => router.push("/reset-password")}>
             Yêu cầu liên kết mới
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => router.push("/login")}>
+            Quay lại đăng nhập
           </Button>
         </CardContent>
       </Card>
     )
   }
 
+  // Form đặt lại mật khẩu khi đã có session
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">

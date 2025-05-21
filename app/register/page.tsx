@@ -1,11 +1,5 @@
-import type { Metadata } from "next"
 import RegisterForm from "@/components/forms/register-form"
 import { ThemeToggle } from "@/components/theme-toggle"
-
-export const metadata: Metadata = {
-  title: "Đăng ký | Trung tâm Gia sư",
-  description: "Đăng ký vào hệ thống quản lý trung tâm gia sư",
-}
 
 export default function RegisterPage() {
   return (
@@ -17,4 +11,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

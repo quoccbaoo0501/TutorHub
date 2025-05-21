@@ -70,7 +70,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href="/user/profiles">Hồ sơ</Link>
+                  <Link href="/user/profile">Hồ sơ</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Đăng xuất</DropdownMenuItem>

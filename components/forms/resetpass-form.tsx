@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +18,17 @@ export default function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const searchParams = useSearchParams()
+  const errorParam = searchParams.get("error")
+
+  const router = useRouter()
+
+  // Hiển thị lỗi nếu token không hợp lệ
+  useEffect(() => {
+    if (errorParam === "invalid_token") {
+      setError("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.")
+    }
+  }, [errorParam])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
