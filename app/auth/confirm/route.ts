@@ -5,6 +5,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+  // Lấy các tham số từ URL
   const token_hash = searchParams.get("token_hash")
   const type = searchParams.get("type") as EmailOtpType | null
   const next = searchParams.get("next") ?? "/update-password"
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
+    // Xác minh OTP (One-Time Password)
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash,

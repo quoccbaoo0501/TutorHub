@@ -14,8 +14,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Textarea } from "../ui/textarea"
-import { Profile } from "@/types/auth"
+import { UserMetadata, Profile } from "@/types/auth"
 
+// Khởi tạo Supabase client
 const supabase = createClientComponentClient({
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
   supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -68,17 +69,7 @@ export default function RegisterForm() {
 
     try {
       // Chuẩn bị dữ liệu metadata cho người dùng
-      interface UserData {
-        role: "customer" | "tutor"
-        full_name: string
-        phone_number: string
-        address: string
-        education?: string
-        experience?: string
-        subjects?: string
-      }
-
-      const userData: UserData = {
+      const userData: UserMetadata = {
         role: userType,
         full_name: fullName,
         phone_number: phoneNumber,
@@ -188,6 +179,7 @@ export default function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignUp} className="space-y-4">
+          {/* Hiển thị thông báo lỗi nếu có */}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -214,6 +206,7 @@ export default function RegisterForm() {
             </Button>
           </div>
 
+          {/* Trường nhập email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -227,6 +220,7 @@ export default function RegisterForm() {
             />
           </div>
 
+          {/* Trường nhập họ và tên */}
           <div className="space-y-2">
             <Label htmlFor="fullName">Họ và tên</Label>
             <Input
@@ -240,6 +234,7 @@ export default function RegisterForm() {
             />
           </div>
 
+          {/* Trường nhập số điện thoại */}
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Số điện thoại</Label>
             <Input
@@ -252,6 +247,7 @@ export default function RegisterForm() {
             />
           </div>
 
+          {/* Trường nhập địa chỉ */}
           <div className="space-y-2">
             <Label htmlFor="address">Địa chỉ</Label>
             <Input
@@ -264,6 +260,7 @@ export default function RegisterForm() {
             />
           </div>
 
+          {/* Các trường thông tin bổ sung cho gia sư */}
           {userType === "tutor" && (
             <>
               <div className="space-y-2">
@@ -301,6 +298,7 @@ export default function RegisterForm() {
             </>
           )}
 
+          {/* Trường nhập mật khẩu */}
           <div className="space-y-2">
             <Label htmlFor="password">Mật khẩu</Label>
             <div className="relative">
@@ -326,6 +324,7 @@ export default function RegisterForm() {
             </div>
           </div>
 
+          {/* Trường xác nhận mật khẩu */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
             <div className="relative">
@@ -351,6 +350,7 @@ export default function RegisterForm() {
             </div>
           </div>
 
+          {/* Nút đăng ký */}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>

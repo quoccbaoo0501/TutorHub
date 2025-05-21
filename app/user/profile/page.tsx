@@ -7,15 +7,18 @@ import { Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function ProfilePage() {
+  // State để lưu trữ thông tin hồ sơ và trạng thái
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Khởi tạo Supabase client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   })
 
+  // Tải thông tin hồ sơ khi component được tải
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -52,6 +55,7 @@ export default function ProfilePage() {
     loadProfile()
   }, [supabase])
 
+  // Hiển thị trạng thái đang tải
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -60,6 +64,7 @@ export default function ProfilePage() {
     )
   }
 
+  // Hiển thị thông báo lỗi nếu có
   if (error) {
     return (
       <Card>
@@ -77,6 +82,7 @@ export default function ProfilePage() {
     )
   }
 
+  // Hiển thị thông tin hồ sơ
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Hồ sơ của tôi</h1>
@@ -122,6 +128,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* Hiển thị thông tin bổ sung cho gia sư */}
               {profile.role === "tutor" && (
                 <div className="mt-6 pt-6 border-t">
                   <h2 className="text-xl font-semibold mb-4">Thông tin gia sư</h2>
@@ -148,6 +155,7 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Hiển thị dữ liệu JSON cho mục đích debug */}
       <Card>
         <CardHeader>
           <CardTitle>Dữ liệu người dùng (Debug)</CardTitle>

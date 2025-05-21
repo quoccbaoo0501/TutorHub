@@ -14,18 +14,22 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function LoginForm() {
+  // Các state cho form đăng nhập
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const router = useRouter()
   const { toast } = useToast()
   const searchParams = useSearchParams()
+  // Lấy các tham số từ URL
   const redirectUrl = searchParams.get("redirect_url") || ""
   const registered = searchParams.get("registered") === "true"
 
+  // Khởi tạo Supabase client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -98,6 +102,7 @@ export default function LoginForm() {
     }
   }
 
+  // Xử lý đăng nhập
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -105,6 +110,7 @@ export default function LoginForm() {
     setErrorMessage(null)
 
     try {
+      // Đăng nhập với email và mật khẩu
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -168,12 +174,14 @@ export default function LoginForm() {
         <p className="text-muted-foreground">Nhập thông tin đăng nhập của bạn để tiếp tục</p>
       </div>
 
+      {/* Hiển thị thông báo thành công nếu có */}
       {successMessage && (
         <Alert className="bg-green-50 border-green-200">
           <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
         </Alert>
       )}
 
+      {/* Hiển thị thông báo lỗi nếu có */}
       {errorMessage && (
         <Alert variant="destructive">
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -181,6 +189,7 @@ export default function LoginForm() {
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
+        {/* Trường nhập email */}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -193,6 +202,7 @@ export default function LoginForm() {
             disabled={isLoading}
           />
         </div>
+        {/* Trường nhập mật khẩu */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mật khẩu</Label>
@@ -215,6 +225,7 @@ export default function LoginForm() {
               required
               disabled={isLoading}
             />
+            {/* Nút hiển thị/ẩn mật khẩu */}
             <Button
               type="button"
               variant="ghost"
@@ -228,6 +239,7 @@ export default function LoginForm() {
             </Button>
           </div>
         </div>
+        {/* Nút đăng nhập */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
@@ -239,6 +251,7 @@ export default function LoginForm() {
           )}
         </Button>
       </form>
+      {/* Liên kết đến trang đăng ký */}
       <div className="text-center text-sm">
         Chưa có tài khoản?{" "}
         <Button variant="link" className="p-0 h-auto" onClick={() => router.push("/register")}>
