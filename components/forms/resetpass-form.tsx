@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { supabase } from "@/lib/supabase/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import Link from "next/link"
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordForm() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,6 +25,12 @@ export default function ResetPasswordPage() {
     setSuccess(false)
 
     try {
+      // Tạo client Supabase mới
+      const supabase = createClientComponentClient({
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      })
+
       // Gửi yêu cầu đặt lại mật khẩu cho email
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         // URL sẽ chuyển hướng sau khi đặt lại mật khẩu thành công
@@ -97,7 +103,11 @@ export default function ResetPasswordPage() {
           Quay lại đăng nhập
         </Link>
         {success && (
-          <Link href="https://mail.google.com/mail/u/0/#inbox" className="text-primary hover:underline text-sm" target="_blank">
+          <Link
+            href="https://mail.google.com/mail/u/0/#inbox"
+            className="text-primary hover:underline text-sm"
+            target="_blank"
+          >
             Vào hòm thư Email của bạn
           </Link>
         )}

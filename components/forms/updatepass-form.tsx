@@ -10,9 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { supabase } from "@/lib/supabase/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
-export default function UpdatePasswordPage() {
+export default function UpdatePasswordForm() {
   // State để lưu trữ thông tin
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -28,8 +28,16 @@ export default function UpdatePasswordPage() {
   //Kiểm tra user với session có hợp lệ hay không
   useEffect(() => {
     const checkSession = async () => {
+      // Tạo client Supabase mới
+      const supabase = createClientComponentClient({
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      })
+
       // Lấy thông tin phiên đăng nhập từ Supabase
       const { data, error } = await supabase.auth.getSession()
+
+      console.log(error, data.session)
 
       // Nếu không có session hoặc người dùng truy cập mà không qua luồng khôi phục
       if (error || !data.session) {
@@ -51,7 +59,7 @@ export default function UpdatePasswordPage() {
     checkSession()
   }, [])
 
-  // Hàm handle form update pass dành cho user 
+  // Hàm handle form update pass dành cho user
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -64,6 +72,12 @@ export default function UpdatePasswordPage() {
     }
 
     try {
+      // Tạo client Supabase mới
+      const supabase = createClientComponentClient({
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      })
+
       const { error } = await supabase.auth.updateUser({
         password: password,
       })

@@ -1,103 +1,119 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, BookOpen, CheckCircle, Award, BarChart3, Layers } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { BookOpen, Calendar, Clock, DollarSign, Users } from "lucide-react"
+import Link from "next/link"
 
-export default function DashboardPage() {
+export default function UserDashboard() {
   return (
-    <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="space-y-4">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Hệ Thống Quản Lý Trung Tâm Gia Sư
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Giải pháp toàn diện giúp kết nối gia sư với học viên, quản lý lớp học và tối ưu hóa hoạt động của
-                  trung tâm gia sư.
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <div className="relative w-full max-w-md aspect-video rounded-lg overflow-hidden border bg-background p-6 shadow-lg">
-                  <div className="space-y-4">
-                    <div className="h-2 w-1/2 rounded-full bg-primary/20"></div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="h-20 rounded-md bg-muted"></div>
-                      <div className="h-20 rounded-md bg-muted"></div>
-                      <div className="h-20 rounded-md bg-muted"></div>
-                    </div>
-                    <div className="h-2 w-3/4 rounded-full bg-primary/20"></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="h-32 rounded-md bg-muted"></div>
-                      <div className="h-32 rounded-md bg-muted"></div>
-                    </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Chào mừng bạn đến với TutorHub!</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lớp học đang tham gia</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">+1 so với tháng trước</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Giờ học tháng này</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24 giờ</div>
+            <p className="text-xs text-muted-foreground">+2 giờ so với tháng trước</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hợp đồng hiện tại</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2</div>
+            <p className="text-xs text-muted-foreground">1 hợp đồng sắp hết hạn</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gia sư đang kết nối</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">Đánh giá trung bình: 4.8/5</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Lịch học sắp tới</CardTitle>
+            <CardDescription>Các buổi học trong 7 ngày tới</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center p-3 border rounded-lg">
+                  <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-md mr-4">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium">Toán học lớp 10</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(Date.now() + i * 86400000).toLocaleDateString("vi-VN")} - 18:00-20:00
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Chi tiết
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Gia sư của bạn</CardTitle>
+            <CardDescription>Danh sách gia sư đang kết nối</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 flex items-center justify-center">
+                    <span className="font-medium">GS{i}</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium">Nguyễn Văn A{i}</h4>
+                    <p className="text-sm text-muted-foreground">Toán, Lý, Hóa</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="text-yellow-500 mr-1">★</div>
+                    <span className="text-sm">{4.5 + i * 0.1}/5</span>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </section>
-
-        <section id="features" className="w-full py-12 md:py-24 bg-background">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-primary px-3 py-1 text-sm text-primary-foreground">
-                  Tính năng
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Tính năng chính</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Hệ thống được thiết kế với đầy đủ tính năng để đáp ứng nhu cầu của tất cả người dùng
-                </p>
-              </div>
+            <div className="mt-4">
+              <Link href="/user/tutors">
+                <Button variant="outline" className="w-full">
+                  Xem tất cả gia sư
+                </Button>
+              </Link>
             </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <Users className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Quản lý người dùng</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Phân quyền rõ ràng cho phụ huynh, gia sư, nhân viên và giám đốc
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <BookOpen className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Quản lý lớp học</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Tạo lớp, duyệt gia sư, theo dõi tiến độ và quản lý lịch học
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <CheckCircle className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Đăng ký & Duyệt lớp</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Gia sư đăng ký nhận lớp, nhân viên duyệt và phụ huynh chọn gia sư
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <Award className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Quản lý hợp đồng</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Tạo và quản lý hợp đồng giữa trung tâm, gia sư và phụ huynh
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <BarChart3 className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Báo cáo & Thống kê</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Thống kê doanh thu, khách hàng, gia sư và các báo cáo tài chính
-                </p>
-              </div>
-              <div className="flex flex-col items-center space-y-2 rounded-lg border p-6 shadow-sm">
-                <Layers className="h-12 w-12 text-primary" />
-                <h3 className="text-xl font-bold">Kiến trúc 3 tầng</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Thiết kế theo mô hình 3 tầng giúp dễ bảo trì và mở rộng
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-  );
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
 }

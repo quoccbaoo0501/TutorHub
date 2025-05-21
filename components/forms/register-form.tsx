@@ -10,9 +10,16 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { supabase } from "@/lib/supabase/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Textarea } from "../ui/textarea"
+import { Profile } from "@/types/auth"
+
+const supabase = createClientComponentClient({
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+})
 
 export default function RegisterForm() {
   // State cho các trường nhập liệu của người dùng
@@ -23,114 +30,155 @@ export default function RegisterForm() {
   const [address, setAddress] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
-
   // State cho thông tin riêng của gia sư
   const [education, setEducation] = useState("")
   const [experience, setExperience] = useState("")
   const [subjects, setSubjects] = useState("")
 
-
   // State cho việc kiểm soát UI
-  
-  // Bật/tắt hiển thị mật khẩu
   const [showPassword, setShowPassword] = useState(false)
-  // Bật/tắt hiển thị mật khẩu xác nhận
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false) 
-  // Theo dõi trạng thái loading khi submit form
-  const [isLoading, setIsLoading] = useState(false) 
-  // Lưu trữ thông báo lỗi đăng ký
-  const [error, setError] = useState<string | null>(null) 
-  // Lưu trữ loại người dùng được chọn
-  const [userType, setUserType] = useState<"customer" | "tutor">("customer") 
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<boolean>(false)
+  const [userType, setUserType] = useState<"customer" | "tutor">("customer")
 
-  const router = useRouter() // Hook của Next.js để điều hướng
+  const router = useRouter()
 
   // Xử lý sự kiện submit form đăng ký người dùng
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault() 
-    setIsLoading(true) 
-    setError(null)    
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+    setSuccess(false)
 
-    //Để chắn chắc rằng không bị chỉnh sửa role trong dev tools
-    if (!['customer', 'tutor'].includes(userType)) {
-      setError("Vai trò không hợp lệ.");
-      setIsLoading(false);
-      return;
+    // Để chắc chắn rằng không bị chỉnh sửa role trong dev tools
+    if (!["customer", "tutor"].includes(userType)) {
+      setError("Vai trò không hợp lệ.")
+      setIsLoading(false)
+      return
     }
 
     // Kiểm tra cơ bản: Mật khẩu và xác nhận mật khẩu phải khớp
     if (password !== confirmPassword) {
       setError("Mật khẩu và xác nhận mật khẩu không khớp.")
-      setIsLoading(false) // Reset trạng thái loading
-      return // Dừng thực thi nếu mật khẩu không khớp
+      setIsLoading(false)
+      return
     }
 
     try {
+      // Chuẩn bị dữ liệu metadata cho người dùng
+      interface UserData {
+        role: "customer" | "tutor"
+        full_name: string
+        phone_number: string
+        address: string
+        education?: string
+        experience?: string
+        subjects?: string
+      }
+
+      const userData: UserData = {
+        role: userType,
+        full_name: fullName,
+        phone_number: phoneNumber,
+        address: address,
+      }
+
+      // Thêm thông tin gia sư nếu cần
+      if (userType === "tutor") {
+        userData.education = education
+        userData.experience = experience
+        userData.subjects = subjects
+      }
+
       // Gọi API Supabase để đăng ký người dùng mới với email và mật khẩu
       const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
+        email,
+        password,
         options: {
-          data: {
-            role: userType, 
-          }
-        }
-      });
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-      // Xử lý kết quả từ Supabase
       if (error) {
-        // Nếu có lỗi từ Supabase Auth, hiển thị lỗi
-        setError(error.message);
-        console.error("Sign up error:", error);
-      } else if (data.user) {
-        // Nếu đăng ký thành công trong auth.users
+        console.error("Lỗi đăng ký:", error)
+        setError(error.message)
+        return
+      }
 
-        // Dữ liệu chung cho cả khách hàng và gia sư
-        const profileData: any = {
-          id: data.user.id, // Sử dụng id từ auth.users
-          email: data.user.email, // Sử dụng email từ auth.users
+      if (data.user) {
+        console.log("Đăng ký thành công:", data.user.id)
+
+        // Tạo hồ sơ người dùng trực tiếp
+        const profileData: Profile = {
+          id: data.user.id,
+          email: email,
           full_name: fullName,
           phone_number: phoneNumber,
           address: address,
-          role: userType, // role được lưu ở đây và user_metadata
-        };
-
-        // Thêm thông tin riêng cho gia sư nếu userType là 'tutor'
-        if (userType === 'tutor') {
-          profileData.education = education;
-          profileData.experience = experience;
-          profileData.subjects = subjects;
+          role: userType,
         }
 
-        // Thêm bản ghi vào bảng profiles
-        const { error: profileError } = await supabase.from('profiles').insert([profileData]);
+        // Thêm thông tin gia sư nếu cần
+        if (userType === "tutor") {
+          profileData.education = education
+          profileData.experience = experience
+          profileData.subjects = subjects
+        }
+
+        // Thêm hồ sơ vào bảng profiles
+        const { error: profileError } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" })
 
         if (profileError) {
-          // Xử lý lỗi nếu không thể tạo profile (tùy chọn: có thể muốn xóa user vừa tạo trong auth.users nếu profile creation failed)
-          console.error("Error inserting profile:", profileError);
-          // Hiển thị lỗi cho người dùng hoặc chuyển hướng đến trang lỗi
-          setError("Đăng ký thành công, nhưng không thể lưu thông tin profile. Vui lòng liên hệ hỗ trợ.");
-          setIsLoading(false); // Đảm bảo tắt loading
-          return; // Dừng lại nếu lỗi tạo profile
+          console.error("Lỗi tạo hồ sơ:", profileError)
+          // Vẫn tiếp tục hiển thị thành công ngay cả khi có lỗi tạo hồ sơ
         }
 
-        console.log("User signed up and profile created:", data.user);
-        // Chuyển hướng người dùng sau khi đăng ký thành công và tạo profile
-        router.push("/login"); // Hoặc trang xác nhận email...
-        router.refresh(); // Tải lại dữ liệu nếu cần cho Server Components
+        // Hiển thị thông báo thành công và hướng dẫn xác nhận email
+        setSuccess(true)
       } else {
-        // Trường hợp hiếm xảy ra: không có lỗi nhưng data.user cũng null
-        setError("Đã xảy ra lỗi không mong muốn trong quá trình đăng ký.");
+        setError("Không thể tạo tài khoản. Vui lòng thử lại sau.")
       }
-
     } catch (err: any) {
-      // Xử lý các lỗi không mong muốn khác trong quá trình thực thi (ví dụ: lỗi mạng)
-      setError(err.message);
-      console.error("Unexpected error:", err);
+      console.error("Lỗi không mong muốn:", err)
+      setError(err.message || "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.")
     } finally {
-      // Luôn kết thúc trạng thái loading dù thành công hay thất bại
-      setIsLoading(false);
+      setIsLoading(false)
     }
+  }
+
+  // Nếu đăng ký thành công, hiển thị thông báo
+  if (success) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">Đăng ký thành công!</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="bg-green-50 border-green-200">
+            <AlertDescription className="text-green-800">
+              Chúng tôi đã gửi email xác nhận đến địa chỉ {email}. Vui lòng kiểm tra hộp thư của bạn và nhấp vào liên
+              kết xác nhận để hoàn tất quá trình đăng ký.
+            </AlertDescription>
+          </Alert>
+          <p className="text-center text-muted-foreground">
+            Nếu bạn không nhận được email trong vòng vài phút, vui lòng kiểm tra thư mục spam hoặc thử đăng ký lại.
+          </p>
+          <div className="flex justify-center space-x-4">
+            <Button onClick={() => router.push("/login")}>Đến trang đăng nhập</Button>
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = "https://mail.google.com")}
+              className="ml-2"
+            >
+              Mở Gmail
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -145,7 +193,7 @@ export default function RegisterForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           {/* Lựa chọn loại người dùng: Khách hàng hoặc Gia sư */}
           <div className="grid grid-cols-2 gap-2 pb-2">
             <Button
@@ -158,7 +206,7 @@ export default function RegisterForm() {
             </Button>
             <Button
               type="button"
-              variant={userType === "tutor" ? "default" : "outline"} 
+              variant={userType === "tutor" ? "default" : "outline"}
               onClick={() => setUserType("tutor")}
               disabled={isLoading}
             >
@@ -196,7 +244,7 @@ export default function RegisterForm() {
             <Label htmlFor="phoneNumber">Số điện thoại</Label>
             <Input
               id="phoneNumber"
-              type="tel" 
+              type="tel"
               placeholder="(028) 372 52002"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
@@ -231,9 +279,8 @@ export default function RegisterForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="experience">Kinh nghiệm</Label>
-                <Input 
+                <Textarea
                   id="experience"
-                  type="text"
                   placeholder="10 điểm đồ án SE104..."
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
@@ -266,11 +313,11 @@ export default function RegisterForm() {
                 disabled={isLoading}
               />
               <Button
-                type="button" 
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3"
-                onClick={() => setShowPassword(!showPassword)} 
+                onClick={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -291,11 +338,11 @@ export default function RegisterForm() {
                 disabled={isLoading}
               />
               <Button
-                type="button" 
+                type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full px-3" 
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)} // Bật/tắt state hiển thị mật khẩu xác nhận
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isLoading}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

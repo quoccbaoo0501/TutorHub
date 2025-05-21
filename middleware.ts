@@ -1,51 +1,101 @@
-// Import hàm tạo Supabase middleware client và các kiểu dữ liệu cần thiết
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-// Middleware chính để xử lý tất cả request
+// Các đường dẫn công khai không yêu cầu xác thực
+const publicRoutes = ["/", "/login", "/register", "/reset-password", "/update-password", "/auth/callback"]
+
 export async function middleware(req: NextRequest) {
-  // Tạo response mặc định để tiếp tục xử lý request nếu không có gì chặn
   const res = NextResponse.next()
-
-  // Khởi tạo Supabase client cho middleware
-  // Thư viện này sẽ tự động đọc và ghi cookie để duy trì phiên đăng nhập
-  const supabase = createMiddlewareClient({ req, res })
-
-  // Lấy thông tin người dùng hiện tại từ Supabase
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  const role = user?.user_metadata?.role
-
-  // Lấy đường dẫn hiện tại của request
+  const url = req.nextUrl.clone()
   const { pathname } = req.nextUrl
 
-  // Định nghĩa các đường dẫn cần bảo vệ (chỉ người dùng đăng nhập mới được truy cập)
-  const protectedPaths = ['/user/dashboard' ,'/user/dashboard/','/admin/dashboard','/admin/dashboard/']
-
-  // Kiểm tra xem đường dẫn hiện tại có nằm trong danh sách cần bảo vệ không
-  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
-
-  // Nếu người dùng chưa đăng nhập và đang cố vào trang cần bảo vệ
-  if (isProtected && !user) {
-    // Tạo URL mới để chuyển hướng người dùng đến trang đăng nhập
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    
-    // Gắn thông tin đường dẫn gốc để sau khi đăng nhập có thể quay lại
-    redirectUrl.searchParams.set('redirect_url', pathname)
-
-    // Chuyển hướng người dùng đến trang đăng nhập
-    return NextResponse.redirect(redirectUrl)
-  }
-  //Check role user là tutor/customer hay là admin/staff
-  if( role === "tutor" || role === "customer"){
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/user/dashboard'
+  // Bỏ qua các tài nguyên tĩnh và API routes
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.includes("favicon.ico") ||
+    pathname.startsWith("/public") ||
+    pathname.includes(".png") ||
+    pathname.includes(".jpg") ||
+    pathname.includes(".svg") ||
+    pathname.includes(".ico")
+  ) {
+    return res
   }
 
-  // Nếu người dùng hợp lệ hoặc truy cập trang công khai, tiếp tục xử lý request
-  return res
+  try {
+    // Tạo client Supabase cho middleware
+    const supabase = createMiddlewareClient({ req, res })
+
+    // Lấy thông tin phiên đăng nhập hiện tại
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Nếu không có phiên đăng nhập và đang truy cập đường dẫn được bảo vệ
+    if (!session) {
+      // Cho phép truy cập các đường dẫn công khai
+      if (publicRoutes.includes(pathname)) {
+        return res
+      }
+
+      // Chuyển hướng đến trang đăng nhập nếu truy cập đường dẫn được bảo vệ
+      url.pathname = "/login"
+      url.searchParams.set("redirect", pathname)
+      return NextResponse.redirect(url)
+    }
+
+    // Nếu có phiên đăng nhập
+    if (session) {
+      // Lấy vai trò từ metadata của người dùng
+      const userRole = session.user.user_metadata?.role || "customer"
+
+      console.log("User role:", userRole, "Pathname:", pathname)
+
+      // Nếu đang truy cập trang công khai (như login), chuyển hướng đến dashboard phù hợp
+      if (publicRoutes.includes(pathname)) {
+        if (userRole === "admin" || userRole === "staff") {
+          url.pathname = "/admin/dashboard"
+          return NextResponse.redirect(url)
+        } else {
+          url.pathname = "/user/dashboard"
+          return NextResponse.redirect(url)
+        }
+      }
+
+      // Kiểm tra quyền truy cập dựa trên vai trò
+      const isAdmin = userRole === "admin" || userRole === "staff"
+      const isAccessingAdminRoute = pathname.startsWith("/admin")
+      const isAccessingUserRoute = pathname.startsWith("/user")
+
+      // Nếu là admin/staff nhưng đang truy cập route của user
+      if (isAdmin && isAccessingUserRoute) {
+        url.pathname = "/admin/dashboard"
+        return NextResponse.redirect(url)
+      }
+
+      // Nếu là user thường nhưng đang truy cập route của admin
+      if (!isAdmin && isAccessingAdminRoute) {
+        url.pathname = "/user/dashboard"
+        return NextResponse.redirect(url)
+      }
+    }
+
+    return res
+  } catch (error) {
+    console.error("Middleware error:", error)
+
+    // Trong trường hợp lỗi, chuyển hướng đến trang đăng nhập
+    if (!publicRoutes.includes(pathname)) {
+      url.pathname = "/login"
+      return NextResponse.redirect(url)
+    }
+
+    return res
+  }
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }
