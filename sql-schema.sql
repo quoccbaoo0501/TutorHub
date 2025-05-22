@@ -147,3 +147,132 @@ WHERE u.id = p.id;
 -- Kiểm tra kết quả
 SELECT id, email, raw_user_meta_data
 FROM auth.users;
+
+
+-- Thêm các trường mới vào bảng profiles
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS certificate_image TEXT,
+ADD COLUMN IF NOT EXISTS certificate_approve BOOLEAN DEFAULT FALSE;
+
+-- Thêm các trường cần thiết vào bảng classes để hỗ trợ chức năng yêu cầu mở lớp
+ALTER TABLE classes
+ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES profiles(id),
+ADD COLUMN IF NOT EXISTS level TEXT,
+ADD COLUMN IF NOT EXISTS province TEXT,
+ADD COLUMN IF NOT EXISTS district TEXT,
+ADD COLUMN IF NOT EXISTS address TEXT,
+ADD COLUMN IF NOT EXISTS schedule TEXT,
+ADD COLUMN IF NOT EXISTS tutor_requirements TEXT,
+ADD COLUMN IF NOT EXISTS special_requirements TEXT;
+
+-- Cập nhật kiểm tra ràng buộc cho trường status trong bảng classes
+ALTER TABLE classes
+DROP CONSTRAINT IF EXISTS classes_status_check;
+
+ALTER TABLE classes
+ADD CONSTRAINT classes_status_check 
+CHECK (status IN ('active', 'completed', 'cancelled', 'pending', 'approved', 'matched', 'rejected'));
+
+-- Tạo các chỉ mục để tăng tốc truy vấn
+CREATE INDEX IF NOT EXISTS idx_classes_customer_id ON classes(customer_id);
+CREATE INDEX IF NOT EXISTS idx_classes_status ON classes(status);
+
+-- Tạo các chính sách bảo mật hàng (RLS) cho bảng classes
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
+
+-- Chính sách cho phép khách hàng xem các lớp học của họ
+CREATE POLICY customer_select_own_classes ON classes 
+  FOR SELECT 
+  USING (auth.uid() = customer_id);
+
+-- Chính sách cho phép khách hàng tạo lớp học mới
+CREATE POLICY customer_insert_own_classes ON classes 
+  FOR INSERT 
+  WITH CHECK (auth.uid() = customer_id);
+
+-- Chính sách cho phép admin và staff xem tất cả lớp học
+CREATE POLICY admin_staff_select_all_classes ON classes 
+  FOR SELECT 
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND (profiles.role = 'admin' OR profiles.role = 'staff')
+    )
+  );
+
+-- Chính sách cho phép admin và staff cập nhật tất cả lớp học
+CREATE POLICY admin_staff_update_all_classes ON classes 
+  FOR UPDATE 
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND (profiles.role = 'admin' OR profiles.role = 'staff')
+    )
+  );
+
+
+-- Chuyển 2 rows certificate từ profiles sang tutors , xóa thông tin không cần thiết của tutors
+  ALTER TABLE tutors
+DROP COLUMN IF EXISTS rating,
+DROP COLUMN IF EXISTS hourly_rate,
+DROP COLUMN IF EXISTS is_available;
+ALTER TABLE tutors
+ADD COLUMN IF NOT EXISTS certificate_image TEXT,
+ADD COLUMN IF NOT EXISTS certificate_approve BOOLEAN DEFAULT FALSE;
+ALTER TABLE profiles
+DROP COLUMN IF EXISTS certificate_image,
+DROP COLUMN IF EXISTS certificate_approve;
+
+
+
+-- Chuyển 3 rows dành cho tutors từ profiles sang tutors , xóa thông tin không cần thiết của tutors
+ALTER TABLE tutors
+ADD COLUMN IF NOT EXISTS education TEXT,
+ADD COLUMN IF NOT EXISTS experience TEXT,
+ADD COLUMN IF NOT EXISTS subjects TEXT;
+ALTER TABLE profiles
+DROP COLUMN IF EXISTS education,
+DROP COLUMN IF EXISTS experience,
+DROP COLUMN IF EXISTS subjects;
+
+
+--Thêm row vào tutors table : Gia sư được chọn 
+ALTER TABLE classes
+ADD COLUMN IF NOT EXISTS selected_tutor_id UUID REFERENCES tutors(id);
+
+
+-- Tạo bảng danh sách gia sư đăng kí vào 1 lớp 
+CREATE TABLE IF NOT EXISTS tutor_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  tutor_id UUID NOT NULL REFERENCES tutors(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending' 
+    CHECK (status IN ('pending', 'accepted', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE tutor_applications
+ADD column IF NOT EXISTS self_introduction TEXT;
+
+
+--Xóa table , row không cần thiết
+DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS reviews CASCADE;
+
+
+-- Thêm policy cho việc customer có thể xóa lớp họ đã đăng kí 
+CREATE POLICY customer_delete_own_classes ON classes
+  FOR DELETE
+  USING (auth.uid() = customer_id);
+
+
+-- Tạo policy mới cho phép người dùng xem lớp đã duyệt
+CREATE POLICY "Allow viewing approved classes for all users"
+ON classes
+FOR SELECT
+USING (
+  status = 'approved'
+);

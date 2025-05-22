@@ -9,6 +9,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 export default function ProfilePage() {
   // State để lưu trữ thông tin hồ sơ và trạng thái
   const [profile, setProfile] = useState<any>(null)
+  const [tutorInfo, setTutorInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,15 +36,34 @@ export default function ProfilePage() {
         }
 
         // Lấy thông tin hồ sơ từ bảng profiles
-        const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single()
 
-        if (error) {
-          console.error("Lỗi lấy hồ sơ:", error)
+        if (profileError) {
+          console.error("Lỗi lấy hồ sơ:", profileError)
           setError("Không thể tải thông tin hồ sơ")
           return
         }
 
-        setProfile(data)
+        setProfile(profileData)
+
+        // Nếu người dùng là gia sư, lấy thêm thông tin từ bảng tutors
+        if (profileData.role === "tutor") {
+          const { data: tutorData, error: tutorError } = await supabase
+            .from("tutors")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+
+          if (tutorError) {
+            console.error("Lỗi lấy thông tin gia sư:", tutorError)
+          } else {
+            setTutorInfo(tutorData)
+          }
+        }
       } catch (err) {
         console.error("Lỗi không mong muốn:", err)
         setError("Đã xảy ra lỗi khi tải thông tin hồ sơ")
@@ -114,22 +134,28 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Hiển thị thông tin bổ sung cho gia sư */}
+              {/* Hiển thị thông tin bổ sung cho gia sư từ bảng tutors */}
               {profile.role === "tutor" && (
                 <div className="mt-6 pt-6 border-t">
                   <h2 className="text-xl font-semibold mb-4">Thông tin gia sư</h2>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <h3 className="font-medium text-sm text-muted-foreground">Học vấn</h3>
-                      <p>{profile.education || "Chưa cập nhật"}</p>
+                      <p>{tutorInfo?.education || "Chưa cập nhật"}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-sm text-muted-foreground">Kinh nghiệm</h3>
-                      <p>{profile.experience || "Chưa cập nhật"}</p>
+                      <p>{tutorInfo?.experience || "Chưa cập nhật"}</p>
                     </div>
                     <div>
                       <h3 className="font-medium text-sm text-muted-foreground">Môn dạy</h3>
-                      <p>{profile.subjects || "Chưa cập nhật"}</p>
+                      <p>{tutorInfo?.subjects || "Chưa cập nhật"}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Trạng thái chứng chỉ</h3>
+                      <p>
+                        {tutorInfo?.certificate_approve ? "Đã được xác nhận" : "Chưa được xác nhận hoặc chưa tải lên"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -148,9 +174,19 @@ export default function ProfilePage() {
           <CardDescription>Thông tin chi tiết từ cơ sở dữ liệu</CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-auto text-xs">
+          <h3 className="text-sm font-medium mb-2">Thông tin hồ sơ:</h3>
+          <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-auto text-xs mb-4">
             {JSON.stringify(profile, null, 2)}
           </pre>
+
+          {profile?.role === "tutor" && (
+            <>
+              <h3 className="text-sm font-medium mb-2">Thông tin gia sư:</h3>
+              <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-auto text-xs">
+                {JSON.stringify(tutorInfo, null, 2)}
+              </pre>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

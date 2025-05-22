@@ -1,7 +1,9 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,7 +24,9 @@ interface ChangePasswordDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+// Component hiển thị dialog đổi mật khẩu
 export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
+  // State cho các trường dữ liệu và trạng thái
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -31,13 +35,14 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const { toast } = useToast()
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   })
 
+  // Xử lý khi người dùng submit form đổi mật khẩu
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -51,44 +56,44 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     }
 
     try {
-      // Đăng nhập lại để xác thực mật khẩu hiện tại
+      // Lấy thông tin người dùng hiện tại
       const { data: userData, error: userError } = await supabase.auth.getUser()
-      
+
       if (userError) {
         throw userError
       }
-      
+
       if (!userData.user?.email) {
         throw new Error("Không thể xác định email người dùng")
       }
-      
+
       // Xác thực mật khẩu hiện tại
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: userData.user.email,
         password: currentPassword,
       })
-      
+
       if (signInError) {
         setError("Mật khẩu hiện tại không chính xác")
         setIsLoading(false)
         return
       }
-      
+
       // Cập nhật mật khẩu mới
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       })
-      
+
       if (updateError) {
         throw updateError
       }
-      
-      // Thành công
+
+      // Thông báo thành công
       toast({
         title: "Đổi mật khẩu thành công",
         description: "Mật khẩu của bạn đã được cập nhật",
       })
-      
+
       // Đóng dialog và reset form
       onOpenChange(false)
       setCurrentPassword("")
@@ -107,18 +112,16 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Đổi mật khẩu</DialogTitle>
-          <DialogDescription>
-            Nhập mật khẩu hiện tại và mật khẩu mới để thay đổi mật khẩu của bạn.
-          </DialogDescription>
+          <DialogDescription>Nhập mật khẩu hiện tại và mật khẩu mới để thay đổi mật khẩu của bạn.</DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleChangePassword} className="space-y-4 py-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
             <div className="relative">
@@ -143,7 +146,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
               </Button>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="newPassword">Mật khẩu mới</Label>
             <div className="relative">
@@ -168,7 +171,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
               </Button>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
             <div className="relative">
@@ -193,7 +196,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
               </Button>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (

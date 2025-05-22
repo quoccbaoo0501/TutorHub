@@ -14,7 +14,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Textarea } from "../ui/textarea"
-import { UserMetadata, Profile } from "@/types/auth"
 
 // Khởi tạo Supabase client
 const supabase = createClientComponentClient({
@@ -69,18 +68,18 @@ export default function RegisterForm() {
 
     try {
       // Chuẩn bị dữ liệu metadata cho người dùng
-      const userData: UserMetadata = {
+      interface UserData {
+        role: "customer" | "tutor"
+        full_name: string
+        phone_number: string
+        address: string
+      }
+
+      const userData: UserData = {
         role: userType,
         full_name: fullName,
         phone_number: phoneNumber,
         address: address,
-      }
-
-      // Thêm thông tin gia sư nếu cần
-      if (userType === "tutor") {
-        userData.education = education
-        userData.experience = experience
-        userData.subjects = subjects
       }
 
       // Gọi API Supabase để đăng ký người dùng mới với email và mật khẩu
@@ -102,8 +101,8 @@ export default function RegisterForm() {
       if (data.user) {
         console.log("Đăng ký thành công:", data.user.id)
 
-        // Tạo hồ sơ người dùng trực tiếp
-        const profileData: Profile = {
+        // Tạo hồ sơ người dùng cơ bản trong bảng profiles
+        const profileData = {
           id: data.user.id,
           email: email,
           full_name: fullName,
@@ -112,19 +111,36 @@ export default function RegisterForm() {
           role: userType,
         }
 
-        // Thêm thông tin gia sư nếu cần
-        if (userType === "tutor") {
-          profileData.education = education
-          profileData.experience = experience
-          profileData.subjects = subjects
-        }
-
         // Thêm hồ sơ vào bảng profiles
         const { error: profileError } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" })
 
         if (profileError) {
           console.error("Lỗi tạo hồ sơ:", profileError)
           // Vẫn tiếp tục hiển thị thành công ngay cả khi có lỗi tạo hồ sơ
+        }
+
+        // Thêm dữ liệu vào bảng customers hoặc tutors tùy theo vai trò
+        if (userType === "customer") {
+          const { error: customerError } = await supabase.from("customers").insert({
+            id: data.user.id,
+          })
+
+          if (customerError) {
+            console.error("Lỗi tạo hồ sơ khách hàng:", customerError)
+          }
+        } else if (userType === "tutor") {
+          // Thêm thông tin gia sư vào bảng tutors, bao gồm các trường đã chuyển từ profiles
+          const { error: tutorError } = await supabase.from("tutors").insert({
+            id: data.user.id,
+            education: education,
+            experience: experience,
+            subjects: subjects,
+            certificate_approve: false,
+          })
+
+          if (tutorError) {
+            console.error("Lỗi tạo hồ sơ gia sư:", tutorError)
+          }
         }
 
         // Hiển thị thông báo thành công và hướng dẫn xác nhận email

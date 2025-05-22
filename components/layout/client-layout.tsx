@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { User } from "lucide-react"
@@ -22,6 +22,7 @@ interface ClientLayoutProps {
 
 const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const router = useRouter()
+  const pathname = usePathname()
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   // Khởi tạo Supabase client cho phía client
   const supabase = createClientComponentClient({
@@ -104,16 +105,42 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             </button>
           </div>
           <div className="flex space-x-4 items-center">
-            <Link href="/user/dashboard" className="px-3 py-2 rounded hover:bg-muted cursor-pointer">
+            <Link
+              href="/user/dashboard"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/dashboard"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:bg-muted cursor-pointer"
+              }`}
+            >
               Dashboard
             </Link>
-            <Link href="/user/class" className="px-3 py-2 rounded hover:bg-muted cursor-pointer">
-              Classes
+            <Link
+              href="/user/class"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/class" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted cursor-pointer"
+              }`}
+            >
+              Lớp học
             </Link>
-            <Link href="/user/contract" className="px-3 py-2 rounded hover:bg-muted cursor-pointer">
+            <Link
+              href="/user/contract"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/contract"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:bg-muted cursor-pointer"
+              }`}
+            >
               Contracts
             </Link>
-            <Link href="/user/payment" className="px-3 py-2 rounded hover:bg-muted cursor-pointer">
+            <Link
+              href="/user/payment"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/payment"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:bg-muted cursor-pointer"
+              }`}
+            >
               Payment
             </Link>
             <ThemeToggle />

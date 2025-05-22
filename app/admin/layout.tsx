@@ -12,9 +12,11 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  // State để kiểm soát việc xác thực quyền truy cập
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const router = useRouter()
 
+  // Kiểm tra quyền truy cập khi component được tải
   useEffect(() => {
     const checkAuthorization = async () => {
       const supabase = createClientComponentClient({
@@ -22,6 +24,7 @@ export default function AdminLayout({
         supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       })
 
+      // Lấy thông tin phiên đăng nhập hiện tại
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -31,14 +34,17 @@ export default function AdminLayout({
         return
       }
 
+      // Lấy vai trò từ metadata của người dùng
       const userRole = session.user.user_metadata?.role
 
+      // Chỉ cho phép admin và staff truy cập trang admin
       if (userRole !== "admin" && userRole !== "staff") {
         console.log("Unauthorized access to admin area. Redirecting...")
         router.push("/user/dashboard")
         return
       }
 
+      // Nếu là admin hoặc staff, cho phép truy cập
       setIsAuthorized(true)
     }
 
