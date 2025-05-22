@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useState } from "react"
+import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"
 
 interface ClientLayoutProps {
   children: React.ReactNode
@@ -20,6 +22,7 @@ interface ClientLayoutProps {
 
 const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const router = useRouter()
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   // Khởi tạo Supabase client cho phía client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -127,6 +130,14 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                 <DropdownMenuItem asChild>
                   <Link href="/user/profile">Hồ sơ</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setChangePasswordOpen(true)
+                  }}
+                >
+                  Đổi mật khẩu
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Đăng xuất</DropdownMenuItem>
               </DropdownMenuContent>
@@ -142,6 +153,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <footer className="bg-muted text-muted-foreground text-center text-sm py-4 mt-auto">
         © {new Date().getFullYear()} SE104
       </footer>
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </div>
   )
 }

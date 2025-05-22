@@ -112,20 +112,6 @@ export default function ProfilePage() {
                   <h3 className="font-medium text-sm text-muted-foreground">Địa chỉ</h3>
                   <p>{profile.address || "Chưa cập nhật"}</p>
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Vai trò</h3>
-                  <p>
-                    {profile.role === "customer"
-                      ? "Khách hàng"
-                      : profile.role === "tutor"
-                        ? "Gia sư"
-                        : profile.role === "admin"
-                          ? "Quản trị viên"
-                          : profile.role === "staff"
-                            ? "Nhân viên"
-                            : profile.role}
-                  </p>
-                </div>
               </div>
 
               {/* Hiển thị thông tin bổ sung cho gia sư */}
