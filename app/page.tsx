@@ -9,8 +9,9 @@ export default function Home() {
         <ThemeToggle />
       </div>
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-8">Chào mừng đến với TutorHub</h1>
-        <p className="text-xl text-center mb-8">Nền tảng kết nối giáo viên và học sinh hiệu quả</p>
+        <p className="text-xl text-center mb-8">Welcome to,</p>
+        <h1 className="text-4xl font-bold text-center mb-8">TutorHub</h1>
+      
         <div className="flex justify-center gap-4">
           <Button asChild>
             <Link href="/login">Đăng nhập</Link>
