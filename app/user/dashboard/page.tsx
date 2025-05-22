@@ -24,24 +24,6 @@ export default function UserDashboard() {
     }).format(date)
   }
 
-  // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị
-  const getLevelText = (level: string) => {
-    switch (level) {
-      case "primary":
-        return "Tiểu học"
-      case "secondary":
-        return "THCS"
-      case "high":
-        return "THPT"
-      case "university":
-        return "Đại học"
-      case "other":
-        return "Khác"
-      default:
-        return level
-    }
-  }
-
   useEffect(() => {
     async function fetchApprovedClasses() {
       setIsLoading(true)
@@ -107,9 +89,6 @@ export default function UserDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Cấp độ:</span> {getLevelText(classItem.level)}
-                    </div>
                     <div className="text-sm">
                       <span className="font-medium">Địa điểm:</span> {classItem.district}, {classItem.province}
                     </div>
