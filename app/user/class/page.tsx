@@ -6,6 +6,7 @@ import { PlusCircle, Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ClassRequestDialog } from "@/components/dialogs/class-request-dialog"
 import { ClassRequestList } from "@/components/class/class-request-list"
+import { TutorClassList } from "@/components/class/tutor-class-list"
 import type { ClassRequest } from "@/types/class"
 import { useToast } from "@/hooks/use-toast"
 
@@ -14,7 +15,9 @@ export default function ClassPage() {
   // State cho dialog tạo lớp và danh sách lớp
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [classRequests, setClassRequests] = useState<ClassRequest[]>([])
+  const [tutorApplications, setTutorApplications] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const { toast } = useToast()
 
   // Khởi tạo Supabase client
@@ -23,7 +26,33 @@ export default function ClassPage() {
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   })
 
-  // Hàm tải danh sách yêu cầu mở lớp
+  // Hàm lấy vai trò người dùng
+  const getUserRole = useCallback(async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) {
+        throw new Error("Không tìm thấy thông tin người dùng")
+      }
+
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .single()
+
+      if (error) {
+        throw error
+      }
+
+      setUserRole(profileData.role)
+      return profileData.role
+    } catch (error) {
+      console.error("Lỗi khi lấy vai trò người dùng:", error)
+      return null
+    }
+  }, [supabase])
+
+  // Hàm tải danh sách yêu cầu mở lớp cho customer
   const fetchClassRequests = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -57,10 +86,70 @@ export default function ClassPage() {
     }
   }, [supabase, toast])
 
-  // Tải danh sách lớp khi component được tải
+  // Hàm tải danh sách lớp đã đăng ký cho tutor
+  const fetchTutorApplications = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) {
+        throw new Error("Không tìm thấy thông tin người dùng")
+      }
+
+      // Lấy danh sách các lớp mà tutor đã đăng ký
+      const { data, error } = await supabase
+        .from("tutor_applications")
+        .select(`
+          *,
+          classes (
+            id,
+            name,
+            subject,
+            level,
+            province,
+            district,
+            address,
+            schedule,
+            status,
+            created_at,
+            customer_profiles:customer_id (
+              full_name,
+              email,
+              phone_number
+            )
+          )
+        `)
+        .eq("tutor_id", userData.user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      setTutorApplications(data || [])
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách lớp đã đăng ký:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách lớp đã đăng ký. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [supabase, toast])
+
+  // Tải dữ liệu khi component được tải
   useEffect(() => {
-    fetchClassRequests()
-  }, [fetchClassRequests])
+    const loadData = async () => {
+      const role = await getUserRole()
+      if (role === "tutor") {
+        fetchTutorApplications()
+      } else {
+        fetchClassRequests()
+      }
+    }
+    loadData()
+  }, [getUserRole, fetchClassRequests, fetchTutorApplications])
 
   // Hàm xử lý khi người dùng gửi yêu cầu mở lớp
   const handleClassRequestSubmit = async (
@@ -134,6 +223,35 @@ export default function ClassPage() {
     }
   }
 
+  if (userRole === null) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Đang tải...</span>
+      </div>
+    )
+  }
+
+  // Hiển thị giao diện cho tutor
+  if (userRole === "tutor") {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Danh sách lớp học đã đăng ký</h1>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <TutorClassList tutorApplications={tutorApplications} onRefresh={fetchTutorApplications} />
+        )}
+      </div>
+    )
+  }
+
+  // Hiển thị giao diện cho customer
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">

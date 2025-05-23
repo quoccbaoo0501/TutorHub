@@ -3,12 +3,16 @@
 // Kiểu dữ liệu cho vai trò người dùng
 export type UserRole = "customer" | "tutor" | "admin" | "staff"
 
+// Kiểu dữ liệu cho giới tính
+export type Gender = "male" | "female" | "other"
+
 // Kiểu dữ liệu cho metadata của người dùng
 export interface UserMetadata {
   role: UserRole
   full_name: string
   phone_number: string
   address: string
+  gender?: Gender
   education?: string
   experience?: string
   subjects?: string
@@ -23,6 +27,7 @@ export interface Profile {
   full_name: string
   phone_number: string
   address: string
+  gender?: Gender
   role: UserRole
   education?: string
   experience?: string
@@ -39,6 +44,7 @@ export interface RegisterFormData {
   fullName: string
   phoneNumber: string
   address: string
+  gender: Gender
   userType: "customer" | "tutor"
   education?: string
   experience?: string

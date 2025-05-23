@@ -92,6 +92,22 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
     }
   }
 
+  // Add a helper function to display gender text
+  const getGenderText = (gender: string | undefined | null) => {
+    if (!gender) return "Không xác định"
+
+    switch (gender) {
+      case "male":
+        return "Nam"
+      case "female":
+        return "Nữ"
+      case "other":
+        return "Khác"
+      default:
+        return "Không xác định"
+    }
+  }
+
   // Hàm xóa yêu cầu lớp học
   const handleDeleteClass = async (classId: string, e: React.MouseEvent) => {
     e.stopPropagation() // Ngăn sự kiện click lan truyền đến card
@@ -152,9 +168,12 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
               education,
               experience,
               subjects,
-              full_name:profiles(full_name),
-              email:profiles(email),
-              phone_number:profiles(phone_number)
+              profiles (
+                full_name,
+                email,
+                phone_number,
+                gender
+              )
             )
           `)
           .eq("class_id", classId)
@@ -272,23 +291,23 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                         <Card key={item.id} className="p-4">
                           <div className="space-y-2">
                             <div className="flex justify-between">
-                              <h3 className="font-medium">{item.tutors.profiles.full_name}</h3>
+                              <h3 className="font-medium">{item.tutors?.profiles?.full_name || "Không xác định"}</h3>
                               <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
                                 Đã duyệt
                               </Badge>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                               <div>
-                                <span className="text-muted-foreground">Email:</span> {item.tutors.profiles.email}
+                                <span className="text-muted-foreground">Học vấn:</span>{" "}
+                                {item.tutors?.education || "Không xác định"}
                               </div>
                               <div>
-                                <span className="text-muted-foreground">SĐT:</span> {item.tutors.profiles.phone_number}
+                                <span className="text-muted-foreground">Môn dạy:</span>{" "}
+                                {item.tutors?.subjects || "Không xác định"}
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Học vấn:</span> {item.tutors.education}
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Môn dạy:</span> {item.tutors.subjects}
+                                <span className="text-muted-foreground">Giới tính:</span>{" "}
+                                {getGenderText(item.tutors?.profiles?.gender)}
                               </div>
                             </div>
                             {item.self_introduction && (
@@ -299,7 +318,7 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                             )}
                             <div>
                               <span className="text-muted-foreground">Kinh nghiệm:</span>
-                              <p className="text-sm">{item.tutors.experience}</p>
+                              <p className="text-sm">{item.tutors?.experience || "Không xác định"}</p>
                             </div>
                           </div>
                         </Card>

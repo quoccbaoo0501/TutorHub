@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 // Các đường dẫn công khai không yêu cầu xác thực
-const publicRoutes = ["/", "/login", "/register", "/reset-password", "/update-password", "/auth/callback"]
+const publicRoutes = ["/", "/login", "/register", "/reset-password", "/update-password", "/auth/callback" , "/auth/confirm" , "/api/check-user"]
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
