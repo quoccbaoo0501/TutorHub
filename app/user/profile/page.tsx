@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ProfilePage() {
   // State để lưu trữ thông tin hồ sơ và trạng thái
@@ -17,6 +18,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const { toast } = useToast()
 
   // Khởi tạo Supabase client
   const supabase = createClientComponentClient({
@@ -28,21 +30,37 @@ export default function ProfilePage() {
     try {
       setIsUploading(true)
 
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("File quá lớn. Vui lòng chọn file nhỏ hơn 5MB.")
+      }
+
+      // Validate file type
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"]
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error("Định dạng file không được hỗ trợ. Vui lòng chọn file JPG, PNG hoặc PDF.")
+      }
+
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) {
         throw new Error("Không tìm thấy thông tin người dùng")
       }
 
-      // Upload file to Supabase storage
+      // Create unique filename
       const fileExt = file.name.split(".").pop()
-      const fileName = `${userData.user.id}-certificate.${fileExt}`
+      const fileName = `${userData.user.id}-${Date.now()}.${fileExt}`
 
+      // Upload file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("certificates")
-        .upload(fileName, file, { upsert: true })
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: file.type,
+        })
 
       if (uploadError) {
-        throw uploadError
+        console.error("Upload error:", uploadError)
+        throw new Error("Không thể tải lên file. Vui lòng thử lại.")
       }
 
       // Update tutor record with certificate image path
@@ -55,7 +73,8 @@ export default function ProfilePage() {
         .eq("id", userData.user.id)
 
       if (updateError) {
-        throw updateError
+        console.error("Database update error:", updateError)
+        throw new Error("Không thể cập nhật thông tin chứng chỉ.")
       }
 
       // Refresh tutor info
@@ -82,14 +101,21 @@ export default function ProfilePage() {
         .eq("id", userData.user.id)
         .maybeSingle()
 
-      if (!tutorError) {
+      if (!tutorError && tutorData) {
         setTutorInfo(tutorData)
       }
 
-      alert("Tải lên chứng chỉ thành công! Vui lòng chờ admin duyệt.")
-    } catch (error) {
-      console.error("Lỗi tải lên chứng chỉ:", error)
-      alert("Không thể tải lên chứng chỉ. Vui lòng thử lại.")
+      toast({
+        title: "Thành công",
+        description: "Tải lên chứng chỉ thành công! Vui lòng chờ admin duyệt.",
+      })
+    } catch (error: any) {
+      console.error("Certificate upload error:", error)
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể tải lên chứng chỉ. Vui lòng thử lại.",
+        variant: "destructive",
+      })
     } finally {
       setIsUploading(false)
       setSelectedFile(null)
@@ -162,7 +188,7 @@ export default function ProfilePage() {
         setProfile(profileData)
 
         // Nếu người dùng là gia sư, lấy thêm thông tin từ bảng tutors
-        if (profile.role === "tutor") {
+        if (profileData.role === "tutor") {
           const { data: tutorData, error: tutorError } = await supabase
             .from("tutors")
             .select(`
@@ -283,7 +309,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Certificate upload section for tutors */}
               {profile.role === "tutor" && (
                 <div className="mt-6 pt-6 border-t">
                   <h2 className="text-xl font-semibold mb-4">Chứng chỉ bằng cấp</h2>
@@ -307,12 +332,29 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-                    {tutorInfo?.certificate_image && (
-                      <div>
-                        <h3 className="font-medium text-sm text-muted-foreground mb-2">Chứng chỉ hiện tại</h3>
-                        <p className="text-sm text-green-600">Đã tải lên chứng chỉ</p>
-                      </div>
-                    )}
+
+                    {/* Certificate status display */}
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm text-muted-foreground">Trạng thái chứng chỉ</h3>
+                      {tutorInfo?.certificate_image ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          <span className="text-sm text-green-600">Đã tải lên chứng chỉ</span>
+                          {tutorInfo.certificate_approve ? (
+                            <Badge className="bg-green-100 text-green-800 border-green-200">Đã được duyệt</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                              Chờ duyệt
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                          <span className="text-sm text-gray-600">Chưa tải lên chứng chỉ</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

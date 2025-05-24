@@ -1,9 +1,11 @@
+// Thêm comments bằng tiếng Việt
+
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 // Các đường dẫn công khai không yêu cầu xác thực
-const publicRoutes = ["/", "/login", "/register", "/reset-password", "/update-password", "/auth/callback" , "/auth/confirm" , "/api/check-user"]
+const publicRoutes = ["/", "/login", "/register", "/reset-password", "/update-password", "/auth/callback"]
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -96,6 +98,7 @@ export async function middleware(req: NextRequest) {
   }
 }
 
+// Cấu hình matcher cho middleware
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }

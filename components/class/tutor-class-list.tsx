@@ -18,6 +18,12 @@ export function TutorClassList({ tutorApplications, onRefresh }: TutorClassListP
             Chờ duyệt
           </Badge>
         )
+      case "approved":
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+            Đã được duyệt
+          </Badge>
+        )
       case "accepted":
         return (
           <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">

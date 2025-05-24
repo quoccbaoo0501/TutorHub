@@ -39,7 +39,7 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
             Đã duyệt
           </Badge>
         )
-      case "matched":
+      case "selected":
         return (
           <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
             Đã ghép gia sư
@@ -49,12 +49,6 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
         return (
           <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
             Từ chối
-          </Badge>
-        )
-      case "completed":
-        return (
-          <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-            Hoàn thành
           </Badge>
         )
       default:
@@ -160,9 +154,9 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
           .from("tutor_applications")
           .select(`
             id,
-            tutor_id,
             status,
             self_introduction,
+            created_at,
             tutors (
               id,
               education,
@@ -170,15 +164,14 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
               subjects,
               profiles (
                 full_name,
-                email,
-                phone_number,
                 gender
               )
             )
           `)
-          .eq("class_id", classId)
-          .eq("status", "accepted")
-          .order("created_at", { ascending: false })
+          .eq("class_id", classId)        // lấy theo lớp
+          .eq("status", "accepted")       // chỉ những gia sư đã duyệt (nếu muốn)
+          .order("created_at", { ascending: false });
+
 
         if (error) {
           throw error

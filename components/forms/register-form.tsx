@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import type { Gender } from "@/types/auth"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -14,12 +15,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Textarea } from "../ui/textarea"
-
-// Khởi tạo Supabase client
-const supabase = createClientComponentClient({
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-})
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export default function RegisterForm() {
   // State cho các trường nhập liệu của người dùng
@@ -28,6 +24,7 @@ export default function RegisterForm() {
   const [fullName, setFullName] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [address, setAddress] = useState("")
+  const [gender, setGender] = useState<Gender>("male")
   const [confirmPassword, setConfirmPassword] = useState("")
 
   // State cho thông tin riêng của gia sư
@@ -44,6 +41,12 @@ export default function RegisterForm() {
   const [userType, setUserType] = useState<"customer" | "tutor">("customer")
 
   const router = useRouter()
+
+  // Khởi tạo Supabase client
+  const supabase = createClientComponentClient({
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  })
 
   // Xử lý sự kiện submit form đăng ký người dùng
   const handleSignUp = async (e: React.FormEvent) => {
@@ -68,19 +71,23 @@ export default function RegisterForm() {
 
     try {
       // Chuẩn bị dữ liệu metadata cho người dùng
-      interface UserData {
-        role: "customer" | "tutor"
-        full_name: string
-        phone_number: string
-        address: string
-      }
-
-      const userData: UserData = {
+      const userData: any = {
         role: userType,
         full_name: fullName,
         phone_number: phoneNumber,
         address: address,
+        gender: gender,
       }
+
+      // Thêm thông tin gia sư nếu đăng ký là gia sư
+      if (userType === "tutor") {
+        userData.education = education
+        userData.experience = experience
+        userData.subjects = subjects
+      }
+
+      //debug
+      console.log(userData)
 
       // Gọi API Supabase để đăng ký người dùng mới với email và mật khẩu
       const { data, error } = await supabase.auth.signUp({
@@ -100,49 +107,6 @@ export default function RegisterForm() {
 
       if (data.user) {
         console.log("Đăng ký thành công:", data.user.id)
-
-        // Tạo hồ sơ người dùng cơ bản trong bảng profiles
-        const profileData = {
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          phone_number: phoneNumber,
-          address: address,
-          role: userType,
-        }
-
-        // Thêm hồ sơ vào bảng profiles
-        const { error: profileError } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" })
-
-        if (profileError) {
-          console.error("Lỗi tạo hồ sơ:", profileError)
-          // Vẫn tiếp tục hiển thị thành công ngay cả khi có lỗi tạo hồ sơ
-        }
-
-        // Thêm dữ liệu vào bảng customers hoặc tutors tùy theo vai trò
-        if (userType === "customer") {
-          const { error: customerError } = await supabase.from("customers").insert({
-            id: data.user.id,
-          })
-
-          if (customerError) {
-            console.error("Lỗi tạo hồ sơ khách hàng:", customerError)
-          }
-        } else if (userType === "tutor") {
-          // Thêm thông tin gia sư vào bảng tutors, bao gồm các trường đã chuyển từ profiles
-          const { error: tutorError } = await supabase.from("tutors").insert({
-            id: data.user.id,
-            education: education,
-            experience: experience,
-            subjects: subjects,
-            certificate_approve: false,
-          })
-
-          if (tutorError) {
-            console.error("Lỗi tạo hồ sơ gia sư:", tutorError)
-          }
-        }
-
         // Hiển thị thông báo thành công và hướng dẫn xác nhận email
         setSuccess(true)
       } else {
@@ -248,6 +212,31 @@ export default function RegisterForm() {
               required
               disabled={isLoading}
             />
+          </div>
+
+          {/* Trường chọn giới tính */}
+          <div className="space-y-2">
+            <Label>Giới tính</Label>
+            <RadioGroup value={gender} onValueChange={(value) => setGender(value as Gender)} className="flex space-x-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="male" id="male" />
+                <Label htmlFor="male" className="cursor-pointer">
+                  Nam
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="female" id="female" />
+                <Label htmlFor="female" className="cursor-pointer">
+                  Nữ
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="other" id="other" />
+                <Label htmlFor="other" className="cursor-pointer">
+                  Khác
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {/* Trường nhập số điện thoại */}
