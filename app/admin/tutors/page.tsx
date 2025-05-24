@@ -121,6 +121,21 @@ export default function AdminTutorsPage() {
     async function fetchTutors() {
       setIsLoading(true)
       try {
+        // Check authentication first
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error("Session error:", sessionError)
+          window.location.href = "/login"
+          return
+        }
+        if (!session) {
+          window.location.href = "/login"
+          return
+        }
+
         const { data: tutorsData, error: tutorsError } = await supabase
           .from("tutors")
           .select(`
@@ -288,6 +303,31 @@ export default function AdminTutorsPage() {
   const getStatusText = (approved: boolean) => {
     return approved ? "Đã duyệt" : "Chờ duyệt"
   }
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+        if (error) {
+          console.error("Auth error:", error)
+          window.location.href = "/login"
+          return
+        }
+        if (!session) {
+          window.location.href = "/login"
+          return
+        }
+      } catch (error) {
+        console.error("Session check error:", error)
+        window.location.href = "/login"
+      }
+    }
+
+    checkAuth()
+  }, [supabase])
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

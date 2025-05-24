@@ -444,20 +444,31 @@ export default function UserDashboard() {
                         variant={registeredClasses.includes(classItem.id) ? "destructive" : "default"}
                         size="sm"
                         className="mt-2 w-full"
+                        disabled={isCertificateApproved === null} // Disable button khi chưa load xong trạng thái
                         onClick={() => {
                           if (registeredClasses.includes(classItem.id)) {
                             // Nếu đã đăng ký, cho phép hủy đăng ký
                             handleCancelRegistration(classItem.id)
-                          } else if (isCertificateApproved === false) {
-                            // Nếu chứng chỉ chưa được duyệt, hiển thị dialog thông báo
-                            setIsProfileDialogOpen(true)
                           } else {
-                            // Nếu chưa đăng ký và chứng chỉ đã được duyệt, mở dialog đăng ký
-                            handleOpenRegistrationDialog(classItem.id)
+                            // Kiểm tra trạng thái chứng chỉ trước khi cho phép đăng ký
+                            if (isCertificateApproved === null) {
+                              // Nếu chưa load xong trạng thái, không làm gì
+                              return
+                            } else if (isCertificateApproved === false) {
+                              // Nếu chứng chỉ chưa được duyệt, hiển thị dialog thông báo
+                              setIsProfileDialogOpen(true)
+                            } else {
+                              // Nếu chứng chỉ đã được duyệt, mở dialog đăng ký
+                              handleOpenRegistrationDialog(classItem.id)
+                            }
                           }
                         }}
                       >
-                        {registeredClasses.includes(classItem.id) ? "Hủy đăng ký" : "Đăng ký dạy"}
+                        {isCertificateApproved === null
+                          ? "Đang tải..."
+                          : registeredClasses.includes(classItem.id)
+                            ? "Hủy đăng ký"
+                            : "Đăng ký dạy"}
                       </Button>
                     </div>
                   </CardContent>

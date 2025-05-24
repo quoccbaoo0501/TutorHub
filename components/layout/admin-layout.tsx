@@ -103,14 +103,40 @@ const AdminSidebar: React.FC = () => {
   // Kiểm tra phiên đăng nhập hiện tại khi component được tải
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getUser()
-      if (data.user) {
-        const userRole = data.user.user_metadata?.role
-        setUserRole(userRole)
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+        if (error) {
+          console.error("Session error:", error)
+          // Don't redirect immediately, let middleware handle it
+          return
+        }
+        if (session?.user) {
+          const userRole = session.user.user_metadata?.role
+          setUserRole(userRole)
+        }
+      } catch (error) {
+        console.error("Session check error:", error)
       }
     }
 
     checkSession()
+
+    // Set up auth state change listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        setUserRole(null)
+      } else if (session?.user) {
+        const userRole = session.user.user_metadata?.role
+        setUserRole(userRole)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [supabase])
 
   return (

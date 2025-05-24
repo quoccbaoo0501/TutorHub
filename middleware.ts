@@ -30,10 +30,22 @@ export async function middleware(req: NextRequest) {
     // Tạo client Supabase cho middleware
     const supabase = createMiddlewareClient({ req, res })
 
-    // Lấy thông tin phiên đăng nhập hiện tại
+    // Lấy thông tin phiên đăng nhập hiện tại với error handling
     const {
       data: { session },
+      error: sessionError,
     } = await supabase.auth.getSession()
+
+    // Handle session errors
+    if (sessionError) {
+      console.error("Middleware session error:", sessionError)
+      // If there's a session error and we're not on a public route, redirect to login
+      if (!publicRoutes.includes(pathname)) {
+        url.pathname = "/login"
+        return NextResponse.redirect(url)
+      }
+      return res
+    }
 
     // Nếu không có phiên đăng nhập và đang truy cập đường dẫn được bảo vệ
     if (!session) {

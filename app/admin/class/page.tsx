@@ -176,41 +176,59 @@ export default function AdminClassPage() {
 
   // Hàm mở dialog chi tiết
   const handleOpenDetails = async (classItem: Class) => {
-    setSelectedClass(classItem)
-    setIsDialogOpen(true)
+    try {
+      setSelectedClass(classItem)
+      setIsDialogOpen(true)
 
-    // Tải danh sách gia sư đã đăng ký nếu lớp đã được duyệt
-    if (classItem.status === "approved" || classItem.status === "matched") {
-      setIsLoadingTutors(true)
-      try {
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from("tutor_applications")
-          .select(`
-            *,
-            tutors (
-              id,
-              education,
-              experience,
-              subjects,
-              profiles (*)
-            )
-          `)
-          .eq("class_id", classItem.id)
-          .order("created_at", { ascending: false })
+      // Tải danh sách gia sư đã đăng ký nếu lớp đã được duyệt
+      if (classItem.status === "approved" || classItem.status === "matched") {
+        setIsLoadingTutors(true)
+        try {
+          // Check session before making request
+          const {
+            data: { session },
+            error: sessionError,
+          } = await supabase.auth.getSession()
+          if (sessionError || !session) {
+            throw new Error("Session expired")
+          }
 
-        if (applicationsError) throw applicationsError
+          const { data: applicationsData, error: applicationsError } = await supabase
+            .from("tutor_applications")
+            .select(`
+              *,
+              tutors (
+                id,
+                education,
+                experience,
+                subjects,
+                profiles (*)
+              )
+            `)
+            .eq("class_id", classItem.id)
+            .order("created_at", { ascending: false })
 
-        setTutorApplications(applicationsData || [])
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách gia sư:", error)
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách gia sư. Vui lòng thử lại sau.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingTutors(false)
+          if (applicationsError) throw applicationsError
+
+          setTutorApplications(applicationsData || [])
+        } catch (error) {
+          console.error("Lỗi khi tải danh sách gia sư:", error)
+          toast({
+            title: "Lỗi",
+            description: "Không thể tải danh sách gia sư. Vui lòng thử lại sau.",
+            variant: "destructive",
+          })
+        } finally {
+          setIsLoadingTutors(false)
+        }
       }
+    } catch (error) {
+      console.error("Error opening details:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể mở chi tiết lớp học.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -219,17 +237,32 @@ export default function AdminClassPage() {
     async function fetchClasses() {
       setIsLoading(true)
       try {
+        // Check authentication first
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error("Session error:", sessionError)
+          window.location.href = "/login"
+          return
+        }
+        if (!session) {
+          window.location.href = "/login"
+          return
+        }
+
         // Lấy danh sách lớp học từ Supabase
         const { data: classesData, error: classesError } = await supabase
           .from("classes")
           .select(`
-          *,
-          customer_profiles:profiles!customer_id(full_name, gender),
-          tutor_profiles:tutors!selected_tutor_id(
-            id,
-            profiles(full_name, gender)
-          )
-        `)
+        *,
+        customer_profiles:profiles!customer_id(full_name, gender),
+        tutor_profiles:tutors!selected_tutor_id(
+          id,
+          profiles(full_name, gender)
+        )
+      `)
           .order("created_at", { ascending: false })
 
         if (classesError) {
@@ -259,6 +292,33 @@ export default function AdminClassPage() {
 
     fetchClasses()
   }, [supabase, toast])
+
+  // Add this after the existing useEffect for fetchClasses
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+        if (error) {
+          console.error("Auth error:", error)
+          // Redirect to login if session is invalid
+          window.location.href = "/login"
+          return
+        }
+        if (!session) {
+          window.location.href = "/login"
+          return
+        }
+      } catch (error) {
+        console.error("Session check error:", error)
+        window.location.href = "/login"
+      }
+    }
+
+    checkAuth()
+  }, [supabase])
 
   // Lọc và sắp xếp dữ liệu khi các điều kiện thay đổi
   useEffect(() => {
