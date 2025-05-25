@@ -51,6 +51,12 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
             Từ chối
           </Badge>
         )
+      case "matched":
+        return (
+          <Badge variant="outline" className="bg-blue-100 text-green-800 border-green-200">
+            Đã ghép gia sư
+          </Badge>
+        )
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -146,7 +152,7 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
     setExpandedClass(classId)
     const classItem = classRequests.find((c) => c.id === classId)
 
-    if (classItem?.status === "approved") {
+    if (classItem?.status === "approved" || classItem?.status === "matched") {
       try {
         setIsLoading(true)
         // Lấy danh sách gia sư đã đăng ký và được duyệt cho lớp này
@@ -162,14 +168,18 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
               education,
               experience,
               subjects,
+              certificate_image,
               profiles (
                 full_name,
-                gender
+                gender,
+                phone_number,
+                email,
+                address
               )
             )
           `)
           .eq("class_id", classId) // lấy theo lớp
-          .eq("status", "approved") // chỉ những gia sư đã được duyệt
+          .eq("status", classItem.status === "matched" ? "selected" : "approved") // chỉ những gia sư đã được duyệt
           .order("created_at", { ascending: false })
 
         if (error) {
@@ -187,6 +197,69 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
       } finally {
         setIsLoading(false)
       }
+    }
+  }
+
+  // Hàm xử lý chọn gia sư
+  const handleSelectTutor = async (tutorId: string, classId: string, applicationId: string) => {
+    try {
+      setIsLoading(true)
+
+      // Cập nhật bảng classes: set selected_tutor_id và status = 'matched'
+      const { error: classError } = await supabase
+        .from("classes")
+        .update({
+          selected_tutor_id: tutorId,
+          status: "matched",
+        })
+        .eq("id", classId)
+
+      if (classError) {
+        throw classError
+      }
+
+      // Cập nhật bảng tutor_applications: set status = 'selected' cho gia sư được chọn
+      const { error: appError } = await supabase
+        .from("tutor_applications")
+        .update({ status: "selected" })
+        .eq("id", applicationId)
+
+      if (appError) {
+        throw appError
+      }
+
+      // Cập nhật status = 'rejected' cho các gia sư khác trong cùng lớp
+      const { error: rejectError } = await supabase
+        .from("tutor_applications")
+        .update({ status: "rejected" })
+        .eq("class_id", classId)
+        .neq("id", applicationId)
+
+      if (rejectError) {
+        throw rejectError
+      }
+
+      toast({
+        title: "Thành công",
+        description: "Đã chọn gia sư thành công!",
+      })
+
+      // Gọi callback để cập nhật danh sách lớp
+      if (onClassDeleted) {
+        onClassDeleted()
+      }
+
+      // Đóng phần mở rộng
+      setExpandedClass(null)
+    } catch (error: any) {
+      console.error("Lỗi khi chọn gia sư:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể chọn gia sư. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -269,7 +342,7 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
 
           {/* Phần mở rộng hiển thị danh sách gia sư */}
           {expandedClass === request.id && (
-            <div className="border rounded-md p-4 bg-background shadow-sm">
+            <div className="border-l-4 border-l-blue-500 rounded-md p-4 bg-blue-50/30 dark:bg-blue-900/10 shadow-sm ml-4">
               {request.status === "approved" ? (
                 <>
                   <h3 className="font-medium text-lg mb-4">Danh sách gia sư đã đăng ký</h3>
@@ -282,11 +355,35 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                       {tutors.map((item) => (
                         <Card key={item.id} className="p-4">
                           <div className="space-y-2">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <h3 className="font-medium">{item.tutors?.profiles?.full_name || "Không xác định"}</h3>
-                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                                Đã duyệt
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                                  Đã duyệt
+                                </Badge>
+                                {request.status === "matched" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      /* Logic to show detailed info - could expand inline or open modal */
+                                    }}
+                                    disabled={isLoading}
+                                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                  >
+                                    Xem chi tiết
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSelectTutor(item.tutors.id, request.id, item.id)}
+                                    disabled={isLoading}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  >
+                                    Chọn gia sư
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                               <div>
@@ -301,6 +398,10 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                                 <span className="text-muted-foreground">Giới tính:</span>{" "}
                                 {getGenderText(item.tutors?.profiles?.gender)}
                               </div>
+                              <div>
+                                <span className="text-muted-foreground">Kinh nghiệm:</span>{" "}
+                                {item.tutors?.experience || "Không xác định"}
+                              </div>
                             </div>
                             {item.self_introduction && (
                               <div>
@@ -308,13 +409,98 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                                 <p className="text-sm">{item.self_introduction}</p>
                               </div>
                             )}
-                            <div>
-                              <span className="text-muted-foreground">Kinh nghiệm:</span>
-                              <p className="text-sm">{item.tutors?.experience || "Không xác định"}</p>
-                            </div>
                           </div>
                         </Card>
                       ))}
+                    </div>
+                  )}
+                </>
+              ) : request.status === "matched" ? (
+                <>
+                  <h3 className="font-medium text-lg mb-4 text-green-700">Gia sư đã được chọn</h3>
+                  {isLoading ? (
+                    <div className="text-center py-4">Đang tải thông tin gia sư...</div>
+                  ) : tutors.length === 0 ? (
+                    <div className="text-center py-4">Không tìm thấy thông tin gia sư</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {tutors
+                        .filter((item) => item.status === "selected")
+                        .map((item) => (
+                          <Card key={item.id} className="p-6 border-green-200 bg-green-50/50">
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h3 className="font-semibold text-lg text-green-800">
+                                  {item.tutors?.profiles?.full_name || "Không xác định"}
+                                </h3>
+                                <Badge className="bg-green-600 text-white">Đã chọn</Badge>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Học vấn:</span>
+                                  <p className="text-sm mt-1">{item.tutors?.education || "Không xác định"}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Môn dạy:</span>
+                                  <p className="text-sm mt-1">{item.tutors?.subjects || "Không xác định"}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Giới tính:</span>
+                                  <p className="text-sm mt-1">{getGenderText(item.tutors?.profiles?.gender)}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Số điện thoại:</span>
+                                  <p className="text-sm mt-1 font-medium text-blue-600">
+                                    {item.tutors?.profiles?.phone_number || "Chưa cập nhật"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Email:</span>
+                                  <p className="text-sm mt-1 font-medium text-blue-600">
+                                    {item.tutors?.profiles?.email || "Chưa cập nhật"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Địa chỉ:</span>
+                                  <p className="text-sm mt-1">{item.tutors?.profiles?.address || "Chưa cập nhật"}</p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className="font-medium text-muted-foreground">Kinh nghiệm:</span>
+                                <p className="text-sm mt-1">{item.tutors?.experience || "Không xác định"}</p>
+                              </div>
+
+                              {item.self_introduction && (
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Giới thiệu bản thân:</span>
+                                  <p className="text-sm mt-1 p-3 bg-white rounded border">{item.self_introduction}</p>
+                                </div>
+                              )}
+
+                              {item.tutors?.certificate_image && (
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Bằng cấp:</span>
+                                  <div className="mt-2">
+                                    <img
+                                      src={
+                                        item.tutors.certificate_image?.startsWith("http")
+                                          ? item.tutors.certificate_image
+                                          : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/certificates/${item.tutors.certificate_image}`
+                                      }
+                                      alt="Bằng cấp gia sư"
+                                      className="max-w-md rounded border shadow-sm"
+                                      onError={(e) => {
+                                        e.currentTarget.src = "/placeholder.svg?height=300&width=400"
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
                     </div>
                   )}
                 </>

@@ -256,7 +256,7 @@ export default function ClassPage() {
           </div>
 
           {/* Stats Cards for Tutor */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-green-100 dark:border-green-700 hover:shadow-xl transition-shadow duration-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -293,6 +293,20 @@ export default function ClassPage() {
                 </div>
                 <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-purple-100 dark:border-purple-700 hover:shadow-xl transition-shadow duration-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã được chọn</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {tutorApplications.filter((app) => app.status === "selected").length}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </div>
@@ -427,13 +441,29 @@ export default function ClassPage() {
           </div>
 
           <div
-            className={`p-8 ${userRole === "tutor" ? "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20" : "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"}`}
+            className={`p-8 ${
+              userRole === "tutor"
+                ? "bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/10 border-l-4 border-green-500"
+                : "bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 border-l-4 border-blue-500"
+            } relative`}
           >
+            {/* Thêm indicator để phân biệt đây là nội dung chi tiết */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-3 py-1 rounded-full border">
+              <div className={`w-2 h-2 rounded-full ${userRole === "tutor" ? "bg-green-500" : "bg-blue-500"}`}></div>
+              {userRole === "tutor" ? "Danh sách đăng ký" : "Quản lý lớp học"}
+            </div>
+
             {isLoading ? (
               <div className="flex flex-col justify-center items-center h-64 space-y-4">
-                <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-                <p className="text-gray-600 dark:text-gray-400 font-medium">Đang tải danh sách lớp học...</p>
+                <Loader2
+                  className={`h-12 w-12 animate-spin ${userRole === "tutor" ? "text-green-600" : "text-blue-600"}`}
+                />
+                <p className="text-gray-600 dark:text-gray-400 font-medium">
+                  {userRole === "tutor" ? "Đang tải danh sách lớp đã đăng ký..." : "Đang tải danh sách lớp học..."}
+                </p>
               </div>
+            ) : userRole === "tutor" ? (
+              <TutorClassList tutorApplications={tutorApplications} onRefresh={fetchTutorApplications} />
             ) : classRequests.length === 0 ? (
               <div className="text-center py-16">
                 <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
