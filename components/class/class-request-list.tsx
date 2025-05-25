@@ -168,10 +168,9 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
               )
             )
           `)
-          .eq("class_id", classId)        // lấy theo lớp
-          .eq("status", "accepted")       // chỉ những gia sư đã duyệt (nếu muốn)
-          .order("created_at", { ascending: false });
-
+          .eq("class_id", classId) // lấy theo lớp
+          .eq("status", "approved") // chỉ những gia sư đã được duyệt
+          .order("created_at", { ascending: false })
 
         if (error) {
           throw error
