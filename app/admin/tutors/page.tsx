@@ -148,6 +148,7 @@ export default function AdminTutorsPage() {
               gender
             )
           `)
+          .not('profiles', 'is', null)
           .order("created_at", { ascending: false })
 
         if (tutorsError) {

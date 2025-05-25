@@ -282,22 +282,22 @@ export default function UserDashboard() {
         } else {
           // Lấy danh sách gia sư đã được duyệt cho customer
           const { data: tutorData, error: tutorError } = await supabase
-            .from("tutors")
-            .select(`
-              id,
-              education,
-              experience,
-              subjects,
-              certificate_approve,
-              profiles:profiles!tutors_id_fkey(
-                full_name,
-                email,
-                phone_number,
-                gender
-              )
-            `)
-            .eq("certificate_approve", true)
-            .order("created_at", { ascending: false })
+          .from("tutors")
+          .select(`
+            id,
+            education,
+            experience,
+            subjects,
+            certificate_approve,
+            profiles (
+              full_name,
+              email,
+              phone_number,
+              gender
+            )
+          `) // Đã sửa phần join profiles
+          .eq("certificate_approve", true)
+          .order("created_at", { ascending: false })
 
           if (tutorError) {
             throw tutorError
@@ -309,7 +309,7 @@ export default function UserDashboard() {
             education: tutor.education,
             experience: tutor.experience,
             subjects: tutor.subjects,
-            profiles: Array.isArray(tutor.profiles) ? tutor.profiles[0] : (tutor.profiles ?? null),
+            profiles: Array.isArray(tutor.profiles) ? (tutor.profiles[0] || null) : (tutor.profiles || null),
           }))
 
           setApprovedTutors(processedTutorData)
