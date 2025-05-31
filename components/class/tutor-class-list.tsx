@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 
 interface TutorClassListProps {
   tutorApplications: any[] // Replace 'any' with a more specific type if possible
+  onRefresh?: () => void;
 }
 
 const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) => {

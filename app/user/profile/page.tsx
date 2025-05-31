@@ -188,7 +188,7 @@ export default function ProfilePage() {
         setProfile(profileData)
 
         // Nếu người dùng là gia sư, lấy thêm thông tin từ bảng tutors
-        if (profileData.role === "tutor") {
+        if (profileData && profileData.role === "tutor") {
           const { data: tutorData, error: tutorError } = await supabase
             .from("tutors")
             .select(`
@@ -267,7 +267,7 @@ export default function ProfilePage() {
           <CardDescription>Thông tin chi tiết về tài khoản của bạn</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {profile ? (
+          {profile && profile ? (
             <>
               {/* Badge for tutor approval status */}
               {profile.role === "tutor" && (

@@ -180,8 +180,14 @@ export default function AdminTutorsPage() {
           throw tutorsError
         }
 
-        setTutors(tutorsData || [])
-        setFilteredTutors(tutorsData || [])
+        // Xử lý dữ liệu để đảm bảo profiles là object, không phải array
+        const processedTutors = (tutorsData || []).map((tutor) => ({
+          ...tutor,
+          profiles: Array.isArray(tutor.profiles) ? tutor.profiles[0] : tutor.profiles,
+        }))
+
+        setTutors(processedTutors)
+        setFilteredTutors(processedTutors)
       } catch (error) {
         console.error("Lỗi khi tải danh sách gia sư:", error)
         toast({
