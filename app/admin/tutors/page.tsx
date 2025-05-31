@@ -136,11 +136,35 @@ export default function AdminTutorsPage() {
           return
         }
 
+        // Add debugging to see what's happening
+        console.log("Fetching tutors with session:", session?.user?.id)
+
+        // First, let's check if we can see any tutors at all
+        const { data: tutorCount, error: countError } = await supabase.from("tutors").select("id", { count: "exact" })
+
+        console.log("Total tutors in database:", tutorCount?.length, "Error:", countError)
+
+        // Check current user role
+        const { data: currentUserProfile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+
+        console.log("Current user role:", currentUserProfile?.role)
+
         const { data: tutorsData, error: tutorsError } = await supabase
           .from("tutors")
           .select(`
-            *,
-            profiles (
+            id,
+            education,
+            experience,
+            subjects,
+            certificate_image,
+            certificate_approve,
+            created_at,
+            updated_at,
+            profiles!inner (
               full_name,
               email,
               phone_number,
@@ -148,8 +172,9 @@ export default function AdminTutorsPage() {
               gender
             )
           `)
-          .not('profiles', 'is', null)
           .order("created_at", { ascending: false })
+
+        console.log("Tutors query result:", tutorsData, "Error:", tutorsError)
 
         if (tutorsError) {
           throw tutorsError
