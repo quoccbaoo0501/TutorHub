@@ -34,8 +34,8 @@ export interface UpdateStaffData {
 async function checkAdminPermission() {
   try {
     const cookieStore = cookies()
-    const accessToken = cookieStore.get("sb-access-token")?.value
-    const refreshToken = cookieStore.get("sb-refresh-token")?.value
+    const accessToken = (await cookieStore).get("sb-access-token")?.value
+    const refreshToken = (await cookieStore).get("sb-refresh-token")?.value
 
     if (!accessToken) {
       return { success: false, error: "Không tìm thấy token xác thực" }

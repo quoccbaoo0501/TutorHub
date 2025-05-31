@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 async function checkAdminPermission() {
   try {
     const cookieStore = cookies()
-    const accessToken = cookieStore.get("sb-access-token")?.value
+    const accessToken = (await cookieStore).get("sb-access-token")?.value
 
     if (!accessToken) {
       return { success: false, error: "Không tìm thấy token xác thực" }

@@ -27,6 +27,7 @@ interface Class {
   name: string
   subject: string
   status: string
+  selected_tutor_id?: string
 }
 
 interface Tutor {
@@ -42,6 +43,8 @@ interface Contract {
   total_amount: number
   start_date: string
   end_date: string
+  class_id?: string
+  tutor_id?: string
 }
 
 interface Payment {
@@ -225,7 +228,15 @@ export default function PaymentsPage() {
 
       setPayments(paymentsData || [])
       setClasses(classesData || [])
-      setTutors(tutorsData || [])
+
+      // Fix tutors data structure
+      const formattedTutors =
+        tutorsData?.map((tutor) => ({
+          id: tutor.id,
+          profiles: tutor.profiles as unknown as { full_name: string; email: string },
+        })) || []
+
+      setTutors(formattedTutors)
       setContracts(contractsData || [])
       setSettings(settingsData || null)
 
@@ -569,7 +580,7 @@ export default function PaymentsPage() {
                   setPaymentForm({ ...paymentForm, class_id: value })
                   // Tự động chọn gia sư của lớp
                   const selectedClass = classes.find((c) => c.id === value)
-                  if (selectedClass) {
+                  if (selectedClass && selectedClass.selected_tutor_id) {
                     // Tìm hợp đồng tương ứng
                     const relatedContract = contracts.find(
                       (c) => c.class_id === value && c.tutor_id === selectedClass.selected_tutor_id,
