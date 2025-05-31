@@ -427,7 +427,7 @@ export function ClassRequestList({ classRequests, onClassDeleted }: ClassRequest
                       {tutors
                         .filter((item) => item.status === "selected")
                         .map((item) => (
-                          <Card key={item.id} className="p-6 border-green-200 bg-green-50/50">
+                          <Card key={item.id} className="p-6 border-black bg-aqua-200">
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-lg text-green-800">

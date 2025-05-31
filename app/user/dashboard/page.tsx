@@ -309,7 +309,7 @@ export default function UserDashboard() {
             education: tutor.education,
             experience: tutor.experience,
             subjects: tutor.subjects,
-            profiles: (tutor.profiles && tutor.profiles.length > 0) ? tutor.profiles[0] : null, // Giữ nguyên cấu trúc dữ liệu
+            profiles: (tutor.profiles && tutor.profiles.length > 0) ? tutor.profiles[0] : null,
           }))
 
           setApprovedTutors(processedTutorData)

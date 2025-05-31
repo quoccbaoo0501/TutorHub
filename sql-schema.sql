@@ -340,3 +340,261 @@ USING (
     WHERE id = auth.uid() AND role = 'staff'
   )
 );
+
+
+DROP POLICY IF EXISTS tutors_select ON tutors;
+
+CREATE POLICY tutors_select
+ON tutors FOR SELECT TO authenticated
+USING (
+  auth.uid() = id 
+  OR EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE profiles.id = auth.uid() 
+    AND profiles.role IN ('admin', 'staff')
+  )
+);
+
+-- Xóa policy cũ và tạo lại
+DROP POLICY IF EXISTS tutors_select ON tutors;
+DROP POLICY IF EXISTS profiles_select_public ON profiles;
+
+-- Policy mới cho tutors - cho phép admin/staff xem tất cả
+CREATE POLICY tutors_select_admin_staff
+ON tutors FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id 
+  -- Hoặc admin/staff
+  OR EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE profiles.id = auth.uid() 
+    AND profiles.role IN ('admin', 'staff')
+  )
+  -- Hoặc gia sư đã được duyệt (cho customer xem)
+  OR certificate_approve = TRUE
+);
+
+-- Policy mới cho profiles - cho phép admin/staff xem profiles của tutors
+CREATE POLICY profiles_select_for_admin
+ON profiles FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id
+  
+  -- Admin/staff có thể xem tất cả profiles
+  OR EXISTS (
+    SELECT 1 FROM profiles p2
+    WHERE p2.id = auth.uid() 
+    AND p2.role IN ('admin', 'staff')
+  )
+  
+  -- Tutor đã duyệt - mọi người có thể xem
+  OR (
+    role = 'tutor' 
+    AND EXISTS (
+      SELECT 1 FROM tutors t 
+      WHERE t.id = profiles.id 
+      AND t.certificate_approve = TRUE
+    )
+  )
+  
+  -- Customer profiles - tutor có thể xem
+  OR (
+    role = 'customer'
+    AND EXISTS (
+      SELECT 1 FROM tutors t2 
+      WHERE t2.id = auth.uid()
+    )
+  )
+);
+
+
+-- Xóa policy cũ và tạo lại
+DROP POLICY IF EXISTS tutors_select ON tutors;
+DROP POLICY IF EXISTS profiles_select_public ON profiles;
+
+-- Policy mới cho tutors - cho phép admin/staff xem tất cả
+CREATE POLICY tutors_select_admin_staff
+ON tutors FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id 
+  -- Hoặc admin/staff
+  OR EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE profiles.id = auth.uid() 
+    AND profiles.role IN ('admin', 'staff')
+  )
+  -- Hoặc gia sư đã được duyệt (cho customer xem)
+  OR certificate_approve = TRUE
+);
+
+-- Policy mới cho profiles - cho phép admin/staff xem profiles của tutors
+CREATE POLICY profiles_select_for_admin
+ON profiles FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id
+  
+  -- Admin/staff có thể xem tất cả profiles
+  OR EXISTS (
+    SELECT 1 FROM profiles p2
+    WHERE p2.id = auth.uid() 
+    AND p2.role IN ('admin', 'staff')
+  )
+  
+  -- Tutor đã duyệt - mọi người có thể xem
+  OR (
+    role = 'tutor' 
+    AND EXISTS (
+      SELECT 1 FROM tutors t 
+      WHERE t.id = profiles.id 
+      AND t.certificate_approve = TRUE
+    )
+  )
+  
+  -- Customer profiles - tutor có thể xem
+  OR (
+    role = 'customer'
+    AND EXISTS (
+      SELECT 1 FROM tutors t2 
+      WHERE t2.id = auth.uid()
+    )
+  )
+);
+
+
+-- Xóa tất cả policies cũ của profiles
+DROP POLICY IF EXISTS profiles_select_own ON profiles;
+DROP POLICY IF EXISTS profiles_select_public ON profiles;
+DROP POLICY IF EXISTS profiles_select_for_admin ON profiles;
+
+-- Tạo lại policies đơn giản hơn, tránh infinite recursion
+CREATE POLICY profiles_select_policy
+ON profiles FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id
+  
+  -- Admin/staff có thể xem tất cả (sử dụng auth.jwt() thay vì query profiles)
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+  
+  -- Tutor đã duyệt - mọi người có thể xem
+  OR (
+    role = 'tutor' 
+    AND EXISTS (
+      SELECT 1 FROM tutors t 
+      WHERE t.id = profiles.id 
+      AND t.certificate_approve = TRUE
+    )
+  )
+  
+  -- Customer profiles - tutor có thể xem (sử dụng auth.jwt())
+  OR (
+    role = 'customer'
+    AND (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'tutor'
+  )
+);
+
+-- Cập nhật policy cho tutors để tương thích
+DROP POLICY IF EXISTS tutors_select_admin_staff ON tutors;
+
+CREATE POLICY tutors_select_policy
+ON tutors FOR SELECT TO authenticated
+USING (
+  -- Chính chủ
+  auth.uid() = id 
+  -- Admin/staff có thể xem tất cả
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+  -- Gia sư đã được duyệt
+  OR certificate_approve = TRUE
+);
+
+
+
+-- Kiểm tra policy hiện tại cho tutors
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'tutors';
+
+-- Xóa policy update cũ nếu có
+DROP POLICY IF EXISTS tutors_update_own ON tutors;
+DROP POLICY IF EXISTS tutors_update_policy ON tutors;
+
+-- Tạo policy mới cho phép admin/staff update
+CREATE POLICY tutors_update_policy
+ON tutors FOR UPDATE TO authenticated
+USING (
+  -- Chính chủ có thể update
+  auth.uid() = id 
+  -- Admin/staff có thể update bất kỳ tutor nào
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+)
+WITH CHECK (
+  -- Chính chủ có thể update
+  auth.uid() = id 
+  -- Admin/staff có thể update bất kỳ tutor nào
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+);
+
+-- Kiểm tra lại policies sau khi tạo
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'tutors';
+
+
+-- Kiểm tra policy hiện tại cho tutors
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'tutors';
+
+-- Xóa policy update cũ nếu có
+DROP POLICY IF EXISTS tutors_update_own ON tutors;
+DROP POLICY IF EXISTS tutors_update_policy ON tutors;
+
+-- Tạo policy mới cho phép admin/staff update
+CREATE POLICY tutors_update_policy
+ON tutors FOR UPDATE TO authenticated
+USING (
+  -- Chính chủ có thể update
+  auth.uid() = id 
+  -- Admin/staff có thể update bất kỳ tutor nào
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+)
+WITH CHECK (
+  -- Chính chủ có thể update
+  auth.uid() = id 
+  -- Admin/staff có thể update bất kỳ tutor nào
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'staff')
+);
+
+-- Kiểm tra lại policies sau khi tạo
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'tutors';
+
+
+
+
+
+-- Kiểm tra dữ liệu gia sư trong database
+SELECT 
+  t.id,
+  t.certificate_approve,
+  t.education,
+  t.experience,
+  t.subjects,
+  p.full_name,
+  p.email,
+  p.role
+FROM tutors t
+JOIN profiles p ON t.id = p.id
+ORDER BY t.created_at DESC;
+
+-- Kiểm tra policy có hoạt động không
+SELECT 
+  t.id,
+  t.certificate_approve
+FROM tutors t
+WHERE t.certificate_approve = TRUE;

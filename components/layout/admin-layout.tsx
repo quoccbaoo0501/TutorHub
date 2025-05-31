@@ -1,4 +1,3 @@
-// Thêm comments bằng tiếng Việt
 
 "use client"
 
@@ -7,7 +6,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import type React from "react"
-import { BarChart3, Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home } from "lucide-react"
+import { BarChart3, Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home , Calendar } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"
@@ -19,6 +18,7 @@ const adminNavItems = [
   { name: "Quản lí tài chính", href: "/admin/finance", icon: DollarSign },
   { name: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
   { name: "Cài đặt", href: "/admin/settings", icon: Settings },
+  { name: "Xếp lịch nhân viên", href: "/admin/schedule", icon: Calendar},
 ]
 
 // Danh sách các mục điều hướng cho trang quản trị - STAFF

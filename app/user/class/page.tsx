@@ -19,6 +19,7 @@ export default function ClassPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
   const { toast } = useToast()
+  const [selectedFilter, setSelectedFilter] = useState("all")
 
   // Khởi tạo Supabase client
   const supabase = createClientComponentClient({
@@ -371,57 +372,69 @@ export default function ClassPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tổng lớp học</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{classRequests.length}</p>
-              </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
+          <div
+            onClick={() => setSelectedFilter("all")}
+            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
+              selectedFilter === "all" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            }`}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tổng lớp học</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{classRequests.length}</p>
+            </div>
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg mt-4">
+              <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Chờ duyệt</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {classRequests.filter((c) => c.status === "pending").length}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-              </div>
+          <div
+            onClick={() => setSelectedFilter("pending")}
+            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
+              selectedFilter === "pending" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            }`}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Chờ duyệt</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                {classRequests.filter((c) => c.status === "pending").length}
+              </p>
+            </div>
+            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg mt-4">
+              <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã duyệt</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {classRequests.filter((c) => c.status === "approved").length}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
+          <div
+            onClick={() => setSelectedFilter("approved")}
+            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
+              selectedFilter === "approved" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            }`}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã duyệt</p>
+              <p className="text-2xl font-bold text-green-600">
+                {classRequests.filter((c) => c.status === "approved").length}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg mt-4">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã ghép gia sư</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {classRequests.filter((c) => c.status === "matched").length}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
+          <div
+            onClick={() => setSelectedFilter("matched")}
+            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
+              selectedFilter === "matched" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            }`}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã ghép gia sư</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {classRequests.filter((c) => c.status === "matched").length}
+              </p>
+            </div>
+            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg mt-4">
+              <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
         </div>
