@@ -1,157 +1,102 @@
-"use client"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type React from "react"
+import { Card, CardContent } from "@/components/ui/card"
 
 interface TutorClassListProps {
-  tutorApplications: any[]
-  onRefresh?: () => void
+  tutorApplications: any[] // Replace 'any' with a more specific type if possible
 }
 
-// Component hiển thị danh sách các lớp mà tutor đã đăng ký
-export function TutorClassList({ tutorApplications, onRefresh }: TutorClassListProps) {
-  console.log("TutorClassList - tutorApplications:", tutorApplications)
-  console.log("TutorClassList - first application:", tutorApplications[0])
+const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) => {
+  console.log("TutorClassList applications:", tutorApplications)
+  tutorApplications.forEach((app, index) => {
+    console.log(`Application ${index}:`, app)
+    console.log(`Classes data:`, app.classes)
+  })
 
-  console.log("Dữ liệu tutorApplications:", tutorApplications)
-
-  // Hàm tạo badge hiển thị trạng thái đăng ký
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-            Chờ duyệt
-          </Badge>
-        )
-      case "approved":
-        return (
-          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-            Đã được duyệt
-          </Badge>
-        )
-      case "accepted":
-        return (
-          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-            Đã được duyệt
-          </Badge>
-        )
-      case "rejected":
-        return (
-          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-            Bị từ chối
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
-  // Hàm định dạng ngày tháng theo định dạng Việt Nam
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date)
-  }
-
-  // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị
-  const getLevelText = (level: string) => {
-    switch (level) {
-      case "primary":
-        return "Tiểu học"
-      case "secondary":
-        return "THCS"
-      case "high":
-        return "THPT"
-      case "university":
-        return "Đại học"
-      case "other":
-        return "Khác"
-      default:
-        return level
-    }
-  }
-
-  // Add a helper function to display gender text
-  const getGenderText = (gender: string | undefined | null) => {
-    if (!gender) return "Không xác định"
-
-    switch (gender) {
-      case "male":
-        return "Nam"
-      case "female":
-        return "Nữ"
-      case "other":
-        return "Khác"
-      default:
-        return "Không xác định"
-    }
-  }
-
-  // Hiển thị thông báo nếu không có đăng ký nào
-  if (tutorApplications.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-muted-foreground">Bạn chưa đăng ký lớp học nào. Hãy vào Dashboard để xem các lớp có sẵn.</p>
-      </div>
-    )
-  }
-
-  // Hiển thị danh sách các lớp đã đăng ký
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {tutorApplications.map((application) => {
-        // Add safety checks
-        if (!application || !application.classes) {
-          return null
+        if (!application.classes) {
+          return (
+            <Card key={application.id} className="w-full opacity-50">
+              <CardContent className="p-6">
+                <div className="text-center text-gray-500">
+                  <p>Không thể tải thông tin lớp học</p>
+                  <p className="text-sm">ID: {application.class_id}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )
         }
 
         return (
           <Card key={application.id} className="w-full">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Class Information */}
                 <div>
-                  <CardTitle className="text-xl">{application.classes?.subject || "Không xác định"}</CardTitle>
-                  <CardDescription>
-                    {getLevelText(application.classes?.level || "")} • {application.classes?.province || ""}
-                    {application.classes?.district ? `, ${application.classes.district}` : ""}
-                  </CardDescription>
+                  <h2 className="text-lg font-semibold text-blue-600">{application.classes.name}</h2>
+                  <p className="text-sm text-gray-600">Môn: {application.classes.subject}</p>
+                  <p className="text-sm text-gray-600">Cấp độ: {application.classes.level}</p>
                 </div>
-                <div className="flex items-center space-x-2">{getStatusBadge(application.status)}</div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* Location */}
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Khách hàng</h4>
-                  <p>
-                    {application.classes?.customer_profiles?.full_name || "Không xác định"}
-                    {application.classes?.customer_profiles?.gender &&
-                      ` (${getGenderText(application.classes.customer_profiles.gender)})`}
+                  <h3 className="font-medium text-gray-800">Địa điểm:</h3>
+                  <p className="text-sm text-gray-600">{application.classes.address}</p>
+                  <p className="text-sm text-gray-600">
+                    {application.classes.district}, {application.classes.province}
                   </p>
                 </div>
+
+                {/* Schedule */}
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Địa chỉ</h4>
-                  <p>{application.classes?.address || "Không xác định"}</p>
+                  <h3 className="font-medium text-gray-800">Lịch học:</h3>
+                  <p className="text-sm text-gray-600">{application.classes.schedule}</p>
                 </div>
+
+                {/* Created Date */}
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Lịch học</h4>
-                  <p>{application.classes?.schedule || "Không xác định"}</p>
+                  <h3 className="font-medium text-gray-800">Ngày tạo:</h3>
+                  <p className="text-sm text-gray-600">
+                    {new Date(application.classes.created_at).toLocaleDateString("vi-VN")}
+                  </p>
                 </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Ngày đăng ký</h4>
-                  <p>{formatDate(application.created_at)}</p>
-                </div>
-                {application.self_introduction && (
-                  <div className="md:col-span-2">
-                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Lời giới thiệu của bạn</h4>
-                    <p>{application.self_introduction}</p>
+
+                {/* Customer Contact Information - Only show if status is "selected" */}
+                {application.status === "selected" && (
+                  <div className="border-t pt-3">
+                    <h3 className="font-medium text-gray-800">Thông tin liên hệ khách hàng:</h3>
+                    <p className="text-sm text-gray-600">Tên: {application.classes.customer_profiles?.full_name}</p>
+                    <p className="text-sm text-gray-600">Email: {application.classes.customer_profiles?.email}</p>
+                    <p className="text-sm text-gray-600">SĐT: {application.classes.customer_profiles?.phone_number}</p>
                   </div>
                 )}
+
+                {/* Application Status */}
+                <div className="border-t pt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Trạng thái:</span>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        application.status === "selected"
+                          ? "bg-green-100 text-green-800"
+                          : application.status === "approved"
+                            ? "bg-blue-100 text-blue-800"
+                            : application.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {application.status === "selected"
+                        ? "Đã được chọn"
+                        : application.status === "approved"
+                          ? "Đã duyệt"
+                          : application.status === "pending"
+                            ? "Chờ duyệt"
+                            : application.status}
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -160,3 +105,5 @@ export function TutorClassList({ tutorApplications, onRefresh }: TutorClassListP
     </div>
   )
 }
+
+export default TutorClassList

@@ -123,26 +123,6 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             >
               Lớp học
             </Link>
-            <Link
-              href="/user/contract"
-              className={`px-3 py-2 rounded transition-colors ${
-                pathname === "/user/contract"
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-muted cursor-pointer"
-              }`}
-            >
-              Contracts
-            </Link>
-            <Link
-              href="/user/payment"
-              className={`px-3 py-2 rounded transition-colors ${
-                pathname === "/user/payment"
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-muted cursor-pointer"
-              }`}
-            >
-              Payment
-            </Link>
             <ThemeToggle />
 
             {/* Menu dropdown cho hồ sơ người dùng */}

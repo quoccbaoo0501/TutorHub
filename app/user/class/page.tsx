@@ -6,7 +6,7 @@ import { PlusCircle, Loader2, BookOpen, Clock, CheckCircle, Users } from "lucide
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ClassRequestDialog } from "@/components/dialogs/class-request-dialog"
 import { ClassRequestList } from "@/components/class/class-request-list"
-import { TutorClassList } from "@/components/class/tutor-class-list"
+import TutorClassList from "@/components/class/tutor-class-list"
 import type { ClassRequest } from "@/types/class"
 import { useToast } from "@/hooks/use-toast"
 
@@ -19,7 +19,7 @@ export default function ClassPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
   const { toast } = useToast()
-  const [selectedFilter, setSelectedFilter] = useState("all")
+  const [selectedFilter, setSelectedFilter] = useState<string>("all")
 
   // Khởi tạo Supabase client
   const supabase = createClientComponentClient({
@@ -96,35 +96,45 @@ export default function ClassPage() {
         throw new Error("Không tìm thấy thông tin người dùng")
       }
 
-      // Lấy danh sách các lớp mà tutor đã đăng ký
-      const { data, error } = await supabase
+      // Lấy tutor applications trước
+      const { data: applications, error: appError } = await supabase
         .from("tutor_applications")
-        .select(`
-          *,
-          classes (
-            id,
-            name,
-            subject,
-            level,
-            province,
-            district,
-            address,
-            schedule,
-            status,
-            created_at,
-            customer_profiles:customer_id (
-              full_name,
-              email,
-              phone_number
-            )
-          )
-        `)
+        .select("*")
         .eq("tutor_id", userData.user.id)
         .order("created_at", { ascending: false })
 
-      if (error) {
-        throw error
-      }
+      if (appError) throw appError
+
+      // Lấy thông tin classes riêng biệt
+      const classIds = applications?.map((app) => app.class_id) || []
+      const { data: classes, error: classError } = await supabase
+        .from("classes")
+        .select(`
+          id,
+          name,
+          subject,
+          level,
+          province,
+          district,
+          address,
+          schedule,
+          status,
+          created_at,
+          customer_profiles:customer_id (
+            full_name,
+            email,
+            phone_number
+          )
+        `)
+        .in("id", classIds)
+
+      if (classError) throw classError
+
+      // Kết hợp dữ liệu
+      const data = applications?.map((app) => ({
+        ...app,
+        classes: classes?.find((cls) => cls.id === app.class_id) || null,
+      }))
 
       setTutorApplications(data || [])
     } catch (error) {
@@ -224,6 +234,49 @@ export default function ClassPage() {
     }
   }
 
+  const getFilteredClassRequests = () => {
+    switch (selectedFilter) {
+      case "pending":
+        return classRequests.filter((c) => c.status === "pending")
+      case "approved":
+        return classRequests.filter((c) => c.status === "approved")
+      case "matched":
+        return classRequests.filter((c) => c.status === "matched")
+      default:
+        return classRequests
+    }
+  }
+
+  const getTranslateFromSelectedFilter = () => {
+    switch (selectedFilter) {
+      case "all": // Thêm trường hợp cho "all"
+        return "Tất cả"
+      case "pending":
+        return "Chờ Duyệt"
+      case "approved":
+        return "Đã Duyệt"
+      case "matched":
+        return "Đã ghép gia sư"
+      case "selected": // Thêm case này cho tutor
+        return "Đã được chọn"
+      default:
+        return "Không xác định"
+    }
+  }
+
+  const getFilteredTutorApplications = () => {
+    switch (selectedFilter) {
+      case "pending":
+        return tutorApplications.filter((app) => app.status === "pending")
+      case "approved":
+        return tutorApplications.filter((app) => app.status === "approved") // Xóa || app.status === "accepted"
+      case "selected":
+        return tutorApplications.filter((app) => app.status === "selected")
+      default:
+        return tutorApplications
+    }
+  }
+
   if (userRole === null) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -258,59 +311,155 @@ export default function ClassPage() {
 
           {/* Stats Cards for Tutor */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-green-100 dark:border-green-700 hover:shadow-xl transition-shadow duration-200">
-              <div className="flex items-center justify-between">
+            <Button
+              onClick={() => setSelectedFilter("all")}
+              className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+                selectedFilter === "all"
+                  ? "bg-green-600 text-white border-green-500"
+                  : "bg-white dark:bg-gray-800 border-green-100 dark:border-green-700"
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tổng đăng ký</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{tutorApplications.length}</p>
+                  <p
+                    className={`text-sm font-medium mb-1 ${
+                      selectedFilter === "all" ? "text-green-100" : "text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    Tổng đăng ký
+                  </p>
+                  <p
+                    className={`text-3xl font-bold ${
+                      selectedFilter === "all" ? "text-white" : "text-gray-900 dark:text-white"
+                    }`}
+                  >
+                    {tutorApplications.length}
+                  </p>
                 </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div
+                  className={`p-3.5 rounded-lg ${
+                    selectedFilter === "all" ? "bg-white/20" : "bg-green-100 dark:bg-green-900/30"
+                  }`}
+                >
+                  <Users
+                    className={`h-7 w-7 ${
+                      selectedFilter === "all" ? "text-white" : "text-green-600 dark:text-green-400"
+                    }`}
+                  />
                 </div>
               </div>
-            </div>
+            </Button>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-yellow-100 dark:border-yellow-700 hover:shadow-xl transition-shadow duration-200">
-              <div className="flex items-center justify-between">
+            <Button
+              onClick={() => setSelectedFilter("pending")}
+              className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+                selectedFilter === "pending"
+                  ? "bg-green-600 text-white border-green-500"
+                  : "bg-white dark:bg-gray-800 border-yellow-100 dark:border-yellow-700"
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Chờ duyệt</p>
-                  <p className="text-2xl font-bold text-yellow-600">
+                  <p
+                    className={`text-sm font-medium mb-1 ${
+                      selectedFilter === "pending" ? "text-green-100" : "text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    Chờ duyệt
+                  </p>
+                  <p
+                    className={`text-3xl font-bold ${selectedFilter === "pending" ? "text-white" : "text-yellow-600"}`}
+                  >
                     {tutorApplications.filter((app) => app.status === "pending").length}
                   </p>
                 </div>
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                  <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                <div
+                  className={`p-3.5 rounded-lg ${
+                    selectedFilter === "pending" ? "bg-white/20" : "bg-yellow-100 dark:bg-yellow-900/30"
+                  }`}
+                >
+                  <Clock
+                    className={`h-7 w-7 ${
+                      selectedFilter === "pending" ? "text-white" : "text-yellow-600 dark:text-yellow-400"
+                    }`}
+                  />
                 </div>
               </div>
-            </div>
+            </Button>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-green-100 dark:border-green-700 hover:shadow-xl transition-shadow duration-200">
-              <div className="flex items-center justify-between">
+            <Button
+              onClick={() => setSelectedFilter("approved")}
+              className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+                selectedFilter === "approved"
+                  ? "bg-green-600 text-white border-green-500"
+                  : "bg-white dark:bg-gray-800 border-green-100 dark:border-green-700"
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã được duyệt</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {tutorApplications.filter((app) => app.status === "approved" || app.status === "accepted").length}
+                  <p
+                    className={`text-sm font-medium mb-1 ${
+                      selectedFilter === "approved" ? "text-green-100" : "text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    Đã được duyệt
+                  </p>
+                  <p
+                    className={`text-3xl font-bold ${selectedFilter === "approved" ? "text-white" : "text-green-600"}`}
+                  >
+                    {tutorApplications.filter((app) => app.status === "approved").length}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div
+                  className={`p-3.5 rounded-lg ${
+                    selectedFilter === "approved" ? "bg-white/20" : "bg-green-100 dark:bg-green-900/30"
+                  }`}
+                >
+                  <CheckCircle
+                    className={`h-7 w-7 ${
+                      selectedFilter === "approved" ? "text-white" : "text-green-600 dark:text-green-400"
+                    }`}
+                  />
                 </div>
               </div>
-            </div>
+            </Button>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-purple-100 dark:border-purple-700 hover:shadow-xl transition-shadow duration-200">
-              <div className="flex items-center justify-between">
+            <Button
+              onClick={() => setSelectedFilter("selected")}
+              className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+                selectedFilter === "selected"
+                  ? "bg-green-600 text-white border-green-500"
+                  : "bg-white dark:bg-gray-800 border-purple-100 dark:border-purple-700"
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã được chọn</p>
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p
+                    className={`text-sm font-medium mb-1 ${
+                      selectedFilter === "selected" ? "text-green-100" : "text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    Đã được chọn
+                  </p>
+                  <p
+                    className={`text-3xl font-bold ${selectedFilter === "selected" ? "text-white" : "text-purple-600"}`}
+                  >
                     {tutorApplications.filter((app) => app.status === "selected").length}
                   </p>
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div
+                  className={`p-3.5 rounded-lg ${
+                    selectedFilter === "selected" ? "bg-white/20" : "bg-purple-100 dark:bg-purple-900/30"
+                  }`}
+                >
+                  <CheckCircle
+                    className={`h-7 w-7 ${
+                      selectedFilter === "selected" ? "text-white" : "text-purple-600 dark:text-purple-400"
+                    }`}
+                  />
                 </div>
               </div>
-            </div>
+            </Button>
           </div>
 
           {/* Main Content for Tutor */}
@@ -336,7 +485,13 @@ export default function ClassPage() {
                   <p className="text-gray-600 dark:text-gray-400 font-medium">Đang tải danh sách lớp đã đăng ký...</p>
                 </div>
               ) : (
-                <TutorClassList tutorApplications={tutorApplications} onRefresh={fetchTutorApplications} />
+                <>
+                  <div className="mb-4">Lọc theo: {getTranslateFromSelectedFilter()}</div>
+                  <TutorClassList
+                    tutorApplications={getFilteredTutorApplications()}
+                    onRefresh={fetchTutorApplications}
+                  />
+                </>
               )}
             </div>
           </div>
@@ -372,71 +527,181 @@ export default function ClassPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div
+          <Button
             onClick={() => setSelectedFilter("all")}
-            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
-              selectedFilter === "all" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+              // Increased padding to p-7
+              selectedFilter === "all"
+                ? "bg-blue-600 text-white border-blue-500"
+                : "bg-white dark:bg-gray-800 border-blue-100 dark:border-blue-700"
             }`}
           >
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tổng lớp học</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{classRequests.length}</p>
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p
+                  className={`text-sm font-medium mb-1 ${
+                    // Added mb-1 for spacing
+                    selectedFilter === "all" ? "text-blue-100" : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Tổng lớp học
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    // Increased count font size to text-3xl
+                    selectedFilter === "all" ? "text-white" : "text-gray-900 dark:text-white"
+                  }`}
+                >
+                  {classRequests.length}
+                </p>
+              </div>
+              <div
+                className={`p-3.5 rounded-lg ${
+                  // Increased icon container padding
+                  selectedFilter === "all" ? "bg-white/20" : "bg-blue-100 dark:bg-blue-900/30"
+                }`}
+              >
+                <BookOpen
+                  className={`h-7 w-7 ${
+                    // Increased icon size
+                    selectedFilter === "all" ? "text-white" : "text-blue-600 dark:text-blue-400"
+                  }`}
+                />
+              </div>
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg mt-4">
-              <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
+          </Button>
 
-          <div
+          <Button
             onClick={() => setSelectedFilter("pending")}
-            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
-              selectedFilter === "pending" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+              // Increased padding to p-7
+              selectedFilter === "pending"
+                ? "bg-blue-600 text-white border-blue-500"
+                : "bg-white dark:bg-gray-800 border-yellow-100 dark:border-yellow-700"
             }`}
           >
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Chờ duyệt</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {classRequests.filter((c) => c.status === "pending").length}
-              </p>
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p
+                  className={`text-sm font-medium mb-1 ${
+                    // Added mb-1
+                    selectedFilter === "pending" ? "text-blue-100" : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Chờ duyệt
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    // Increased count font size
+                    selectedFilter === "pending" ? "text-white" : "text-yellow-600"
+                  }`}
+                >
+                  {classRequests.filter((c) => c.status === "pending").length}
+                </p>
+              </div>
+              <div
+                className={`p-3.5 rounded-lg ${
+                  // Increased icon container padding
+                  selectedFilter === "pending" ? "bg-white/20" : "bg-yellow-100 dark:bg-yellow-900/30"
+                }`}
+              >
+                <Clock
+                  className={`h-7 w-7 ${
+                    // Increased icon size
+                    selectedFilter === "pending" ? "text-white" : "text-yellow-600 dark:text-yellow-400"
+                  }`}
+                />
+              </div>
             </div>
-            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg mt-4">
-              <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-            </div>
-          </div>
+          </Button>
 
-          <div
+          <Button
             onClick={() => setSelectedFilter("approved")}
-            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
-              selectedFilter === "approved" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+              // Increased padding to p-7
+              selectedFilter === "approved"
+                ? "bg-blue-600 text-white border-blue-500"
+                : "bg-white dark:bg-gray-800 border-green-100 dark:border-green-700"
             }`}
           >
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã duyệt</p>
-              <p className="text-2xl font-bold text-green-600">
-                {classRequests.filter((c) => c.status === "approved").length}
-              </p>
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p
+                  className={`text-sm font-medium mb-1 ${
+                    // Added mb-1
+                    selectedFilter === "approved" ? "text-blue-100" : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Đã duyệt
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    // Increased count font size
+                    selectedFilter === "approved" ? "text-white" : "text-green-600"
+                  }`}
+                >
+                  {classRequests.filter((c) => c.status === "approved").length}
+                </p>
+              </div>
+              <div
+                className={`p-3.5 rounded-lg ${
+                  // Increased icon container padding
+                  selectedFilter === "approved" ? "bg-white/20" : "bg-green-100 dark:bg-green-900/30"
+                }`}
+              >
+                <CheckCircle
+                  className={`h-7 w-7 ${
+                    // Increased icon size
+                    selectedFilter === "approved" ? "text-white" : "text-green-600 dark:text-green-400"
+                  }`}
+                />
+              </div>
             </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg mt-4">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
+          </Button>
 
-          <div
+          <Button
             onClick={() => setSelectedFilter("matched")}
-            className={`rounded-xl p-6 shadow-lg border flex flex-col items-start justify-between transition-shadow duration-200 cursor-pointer ${
-              selectedFilter === "matched" ? "bg-blue-600 text-white border-blue-500" : "bg-white dark:bg-gray-800"
+            className={`rounded-xl p-7 shadow-lg border hover:shadow-xl transition-shadow duration-200 text-left w-full ${
+              // Increased padding to p-7
+              selectedFilter === "matched"
+                ? "bg-blue-600 text-white border-blue-500"
+                : "bg-white dark:bg-gray-800 border-purple-100 dark:border-purple-700"
             }`}
           >
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Đã ghép gia sư</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {classRequests.filter((c) => c.status === "matched").length}
-              </p>
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p
+                  className={`text-sm font-medium mb-1 ${
+                    // Added mb-1
+                    selectedFilter === "matched" ? "text-blue-100" : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Đã ghép gia sư
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    // Increased count font size
+                    selectedFilter === "matched" ? "text-white" : "text-purple-600"
+                  }`}
+                >
+                  {classRequests.filter((c) => c.status === "matched").length}
+                </p>
+              </div>
+              <div
+                className={`p-3.5 rounded-lg ${
+                  // Increased icon container padding
+                  selectedFilter === "matched" ? "bg-white/20" : "bg-purple-100 dark:bg-purple-900/30"
+                }`}
+              >
+                <Users
+                  className={`h-7 w-7 ${
+                    // Increased icon size
+                    selectedFilter === "matched" ? "text-white" : "text-purple-600 dark:text-purple-400"
+                  }`}
+                />
+              </div>
             </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg mt-4">
-              <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            </div>
-          </div>
+          </Button>
         </div>
 
         {/* Main Content */}
@@ -476,8 +741,11 @@ export default function ClassPage() {
                 </p>
               </div>
             ) : userRole === "tutor" ? (
-              <TutorClassList tutorApplications={tutorApplications} onRefresh={fetchTutorApplications} />
-            ) : classRequests.length === 0 ? (
+              <>
+                <div className="mb-4">Lọc theo: {getTranslateFromSelectedFilter()}</div>
+                <TutorClassList tutorApplications={getFilteredTutorApplications()} onRefresh={fetchTutorApplications} />
+              </>
+            ) : getFilteredClassRequests().length === 0 ? (
               <div className="text-center py-16">
                 <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
                   <BookOpen className="h-12 w-12 text-gray-400" />
@@ -495,7 +763,10 @@ export default function ClassPage() {
                 </Button>
               </div>
             ) : (
-              <ClassRequestList classRequests={classRequests} onClassDeleted={fetchClassRequests} />
+              <>
+                <div className="mb-4">Lọc theo: {getTranslateFromSelectedFilter()}</div>
+                <ClassRequestList classRequests={getFilteredClassRequests()} onClassDeleted={fetchClassRequests} />
+              </>
             )}
           </div>
         </div>

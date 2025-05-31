@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Loader2, User } from "lucide-react"
+import { BookOpen, Loader2, User, Trash2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import type { ClassRequest } from "@/types/class"
 import { useToast } from "@/hooks/use-toast"
@@ -195,7 +195,7 @@ export default function UserDashboard() {
         throw new Error("Không tìm thấy thông tin người dùng")
       }
 
-      // Xóa đăng ký
+      // Xóa đăng ký với điều kiện chính xác
       const { error } = await supabase
         .from("tutor_applications")
         .delete()
@@ -203,6 +203,7 @@ export default function UserDashboard() {
         .eq("class_id", classId)
 
       if (error) {
+        console.error("Database error:", error)
         throw error
       }
 
@@ -282,8 +283,8 @@ export default function UserDashboard() {
         } else {
           // Lấy danh sách gia sư đã được duyệt cho customer
           const { data: tutorData, error: tutorError } = await supabase
-          .from("tutors")
-          .select(`
+            .from("tutors")
+            .select(`
             id,
             education,
             experience,
@@ -296,8 +297,8 @@ export default function UserDashboard() {
               gender
             )
           `) // Đã sửa phần join profiles
-          .eq("certificate_approve", true)
-          .order("created_at", { ascending: false })
+            .eq("certificate_approve", true)
+            .order("created_at", { ascending: false })
 
           if (tutorError) {
             throw tutorError
@@ -309,7 +310,7 @@ export default function UserDashboard() {
             education: tutor.education,
             experience: tutor.experience,
             subjects: tutor.subjects,
-            profiles: (tutor.profiles && tutor.profiles.length > 0) ? tutor.profiles[0] : null,
+            profiles: tutor.profiles ? tutor.profiles : null, // Giữ nguyên cấu trúc dữ liệu
           }))
 
           setApprovedTutors(processedTutorData)
@@ -440,36 +441,47 @@ export default function UserDashboard() {
                         <span className="font-medium">Ngày tạo:</span> {formatDate(classItem.created_at)}
                       </div>
                       {/* Nút đăng ký hoặc hủy đăng ký dạy lớp */}
-                      <Button
-                        variant={registeredClasses.includes(classItem.id) ? "destructive" : "default"}
-                        size="sm"
-                        className="mt-2 w-full"
-                        disabled={isCertificateApproved === null} // Disable button khi chưa load xong trạng thái
-                        onClick={() => {
-                          if (registeredClasses.includes(classItem.id)) {
-                            // Nếu đã đăng ký, cho phép hủy đăng ký
-                            handleCancelRegistration(classItem.id)
-                          } else {
-                            // Kiểm tra trạng thái chứng chỉ trước khi cho phép đăng ký
-                            if (isCertificateApproved === null) {
-                              // Nếu chưa load xong trạng thái, không làm gì
-                              return
-                            } else if (isCertificateApproved === false) {
-                              // Nếu chứng chỉ chưa được duyệt, hiển thị dialog thông báo
-                              setIsProfileDialogOpen(true)
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          variant={registeredClasses.includes(classItem.id) ? "outline" : "default"}
+                          size="sm"
+                          className="flex-1"
+                          disabled={isCertificateApproved === null}
+                          onClick={() => {
+                            if (registeredClasses.includes(classItem.id)) {
+                              // Nếu đã đăng ký, cho phép hủy đăng ký
+                              handleCancelRegistration(classItem.id)
                             } else {
-                              // Nếu chứng chỉ đã được duyệt, mở dialog đăng ký
-                              handleOpenRegistrationDialog(classItem.id)
+                              // Kiểm tra trạng thái chứng chỉ trước khi cho phép đăng ký
+                              if (isCertificateApproved === null) {
+                                return
+                              } else if (isCertificateApproved === false) {
+                                setIsProfileDialogOpen(true)
+                              } else {
+                                handleOpenRegistrationDialog(classItem.id)
+                              }
                             }
-                          }
-                        }}
-                      >
-                        {isCertificateApproved === null
-                          ? "Đang tải..."
-                          : registeredClasses.includes(classItem.id)
-                            ? "Hủy đăng ký"
-                            : "Đăng ký dạy"}
-                      </Button>
+                          }}
+                        >
+                          {isCertificateApproved === null
+                            ? "Đang tải..."
+                            : registeredClasses.includes(classItem.id)
+                              ? "Hủy đăng ký"
+                              : "Đăng ký dạy"}
+                        </Button>
+
+                        {/* Nút thùng rác cho lớp đã đăng ký */}
+                        {registeredClasses.includes(classItem.id) && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCancelRegistration(classItem.id)}
+                            className="px-3"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
