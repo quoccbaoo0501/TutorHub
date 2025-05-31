@@ -30,7 +30,6 @@ export async function middleware(req: NextRequest) {
     // Tạo client Supabase cho middleware
     const supabase = createMiddlewareClient({ req, res })
 
-
     // Lấy thông tin phiên đăng nhập hiện tại với error handling
     const {
       data: { session },
