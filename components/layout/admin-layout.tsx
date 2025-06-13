@@ -5,10 +5,11 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import type React from "react"
-import { BarChart3, Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home , Calendar } from "lucide-react"
+import { BarChart3, Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home , Calendar, Menu, X } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"
+import { Button } from "@/components/ui/button"
 
 // Danh sách các mục điều hướng cho trang quản trị - ADMIN
 const adminNavItems = [
@@ -35,6 +36,8 @@ const AdminSidebar: React.FC = () => {
   const router = useRouter()
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
   // Khởi tạo Supabase client cho phía client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -138,52 +141,85 @@ const AdminSidebar: React.FC = () => {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  return (
-    <div className="w-64 bg-background border-r border-border text-foreground flex flex-col h-screen">
-      {/* Tiêu đề thanh bên */}
-      <div className="p-4 text-2xl font-bold border-b border-border">
-        <span>Admin Panel</span>
+  const NavLinks = () => (
+    <nav className="flex flex-col p-4 space-y-2 flex-grow overflow-y-auto">
+      {(userRole === "admin" ? adminNavItems : staffNavItems).map((item) => (
+        <Link key={item.name} href={item.href} onClick={() => isMobileSidebarOpen && setIsMobileSidebarOpen(false)}>
+          <div
+            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
+              pathname === item.href
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <item.icon className="mr-3 h-5 w-5" />
+            {item.name}
+          </div>
+        </Link>
+      ))}
+    </nav>
+  )
+
+  const SidebarFooter = () => (
+    <div className="p-4 border-t border-border space-y-2">
+      <div className="flex justify-between items-center px-3">
+        <span className="text-sm font-medium">Theme</span>
+        <ThemeToggle />
       </div>
-      {/* Danh sách các mục điều hướng */}
-      <nav className="flex flex-col p-4 space-y-2 flex-grow overflow-y-auto">
-        {(userRole === "admin" ? adminNavItems : staffNavItems).map((item) => (
-          <Link key={item.name} href={item.href}>
-            <div
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                pathname === item.href
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </div>
-          </Link>
-        ))}
-      </nav>
-      {/* Phần dưới của thanh bên */}
-      <div className="p-4 border-t border-border space-y-2">
-        <div className="flex justify-between items-center px-3">
-          <span className="text-sm font-medium">Theme</span>
-          <ThemeToggle />
-        </div>
-        <button
-          onClick={() => setChangePasswordOpen(true)}
-          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Settings className="mr-3 h-5 w-5" />
-          Đổi mật khẩu
-        </button>
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-destructive hover:bg-muted"
-        >
-          <LogOut className="mr-3 h-5 w-5" />
-          Đăng xuất
-        </button>
-      </div>
-      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
+      <button
+        onClick={() => {
+          setChangePasswordOpen(true)
+          isMobileSidebarOpen && setIsMobileSidebarOpen(false)
+        }}
+        className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Settings className="mr-3 h-5 w-5" />
+        Đổi mật khẩu
+      </button>
+      <button
+        onClick={handleLogout}
+        className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-destructive hover:bg-muted"
+      >
+        <LogOut className="mr-3 h-5 w-5" />
+        Đăng xuất
+      </button>
     </div>
+  )
+
+  return (
+    <>
+      {/* Mobile Top Bar */}
+      <div className="md:hidden sticky top-0 z-50 bg-background border-b border-border p-4 flex items-center justify-between">
+        <Button variant="ghost" size="icon" onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}>
+          {isMobileSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <span className="sr-only">Toggle Sidebar</span>
+        </Button>
+        <span className="text-lg font-bold">Admin Panel</span>
+        <div className="w-10"></div> {/* Spacer to balance the title */}
+      </div>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border text-foreground flex-col h-screen transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:sticky md:flex md:h-screen transition-transform duration-300 ease-in-out`}
+      >
+        {/* Tiêu đề thanh bên */}
+        <div className="p-4 text-2xl font-bold border-b border-border hidden md:block">
+          <span>Admin Panel</span>
+        </div>
+        <NavLinks />
+        <SidebarFooter />
+      </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        ></div>
+      )}
+
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
+    </>
   )
 }
 

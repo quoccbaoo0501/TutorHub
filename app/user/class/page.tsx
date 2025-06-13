@@ -162,6 +162,7 @@ export default function ClassPage() {
     loadData()
   }, [getUserRole, fetchClassRequests, fetchTutorApplications])
 
+
   // Hàm xử lý khi người dùng gửi yêu cầu mở lớp
   const handleClassRequestSubmit = async (
     newClassRequest: Omit<ClassRequest, "id" | "customer_id" | "created_at" | "status">,
@@ -286,6 +287,10 @@ export default function ClassPage() {
     )
   }
 
+  const handleClickContract = () => {
+
+  }
+  
   // Hiển thị giao diện cho tutor
   if (userRole === "tutor") {
     return (

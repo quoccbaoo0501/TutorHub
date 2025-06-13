@@ -1,5 +1,6 @@
 import type React from "react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "../ui/button"
 
 interface TutorClassListProps {
   tutorApplications: any[] // Replace 'any' with a more specific type if possible
@@ -12,6 +13,7 @@ const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) =>
     console.log(`Application ${index}:`, app)
     console.log(`Classes data:`, app.classes)
   })
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -97,6 +99,10 @@ const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) =>
                             : application.status}
                     </span>
                   </div>
+                </div>
+
+                <div>
+                  <Button>Hợp đồng</Button>
                 </div>
               </div>
             </CardContent>
