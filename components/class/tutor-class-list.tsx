@@ -1,8 +1,11 @@
-// Component hiển thị danh sách các lớp học của gia sư
-// Hiển thị các lớp học mà gia sư đã được chọn dạy
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 // Remove: import ContractDialog from "../dialogs/contract-dialog"
+
+// Định nghĩa kiểu dữ liệu cho lớp học
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import ContractDialog from "../dialogs/contract-dialog"
 
 // Định nghĩa kiểu dữ liệu cho lớp học
 interface ClassItem {
@@ -37,6 +40,8 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
   // Remove: const [classes, setClasses] = useState<ClassItem[]>([])
   // Remove: const [isLoading, setIsLoading] = useState(true)
   // Remove: const entire useEffect block
+  const [isContractDialogOpen, setIsContractDialogOpen] = useState(false)
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
 
   // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị tiếng Việt
   const getLevelText = (level: string) => {
@@ -68,8 +73,8 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
 
   // Hàm mở dialog hợp đồng
   const handleOpenContractDialog = (classId: string) => {
-    // setSelectedClassId(classId)
-    // setIsContractDialogOpen(true)
+    setSelectedClassId(classId)
+    setIsContractDialogOpen(true)
   }
 
   // useEffect tải dữ liệu ban đầu khi component được tải
@@ -122,11 +127,53 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
                       {application.classes.province}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Lịch học:</span> {application.classes.schedule}
+                      <span className="font-medium">Địa chỉ chi tiết:</span> {application.classes.address}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Khách hàng:</span>{" "}
-                      {application.classes.customer_profiles?.full_name || "Không xác định"}
+                      <span className="font-medium">Lịch học:</span> {application.classes.schedule}
+                    </div>
+
+                    {/* Enhanced customer information */}
+                    <div className="border-t pt-2 mt-3">
+                      <div className="text-sm font-medium text-blue-600 mb-2">Thông tin liên hệ khách hàng:</div>
+                      <div className="text-sm">
+                        <span className="font-medium">Tên:</span>{" "}
+                        {application.classes.customer_profiles?.full_name || "Không xác định"}
+                      </div>
+                      {application.classes.customer_profiles?.phone_number && (
+                        <div className="text-sm">
+                          <span className="font-medium">Số điện thoại:</span>{" "}
+                          <a
+                            href={`tel:${application.classes.customer_profiles.phone_number}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {application.classes.customer_profiles.phone_number}
+                          </a>
+                        </div>
+                      )}
+                      {application.classes.customer_profiles?.email && (
+                        <div className="text-sm">
+                          <span className="font-medium">Email:</span>{" "}
+                          <a
+                            href={`mailto:${application.classes.customer_profiles.email}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {application.classes.customer_profiles.email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contract button */}
+                    <div className="pt-3">
+                      <Button
+                        onClick={() => handleOpenContractDialog(application.classes.id)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Xem hợp đồng
+                      </Button>
                     </div>
                   </>
                 )}
@@ -135,6 +182,10 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
           </Card>
         ))}
       </div>
+      {/* Contract Dialog */}
+      {selectedClassId && (
+        <ContractDialog open={isContractDialogOpen} onOpenChange={setIsContractDialogOpen} classId={selectedClassId} />
+      )}
     </div>
   )
 }
