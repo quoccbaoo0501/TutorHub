@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function LoginForm() {
   // Các state cho form đăng nhập
@@ -198,10 +199,11 @@ export default function LoginForm() {
 
   
   return (
-    <div className="w-screen h-screen flex overflow-hidden">
-
-      {/* Bên trái - Typing Quote + Logo */}
-      <div className="w-1/2 bg-yellow-50 text-orange-600 relative flex flex-col justify-center items-center px-8">
+    <div className="fixed inset-0 flex">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center bg-yellow-50 text-orange-600 relative px-8">
         <div className="absolute top-6 left-6 text-2xl font-bold text-orange-500">
           TutorHub
         </div>
@@ -213,8 +215,7 @@ export default function LoginForm() {
         </div>
       </div>
 
-      {/* Bên phải - Login Form */}
-      <div className="w-1/2 flex items-center justify-center bg-[#7de3eb] dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center bg-[#7de3eb] dark:bg-gray-900">
         <div className="bg-white dark:bg-gray-800 border border-cyan-500 dark:border-cyan-300 shadow-2xl rounded-2xl px-6 py-6 w-full max-w-sm text-center space-y-4 transition-colors duration-300 max-h-[90vh] overflow-y-auto">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Đăng nhập</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">
