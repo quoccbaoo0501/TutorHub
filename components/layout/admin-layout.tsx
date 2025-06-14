@@ -139,52 +139,63 @@ const AdminSidebar: React.FC = () => {
   }, [supabase])
 
   return (
-    <div className="w-64 bg-background border-r border-border text-foreground flex flex-col h-screen">
-      {/* Tiêu đề thanh bên */}
-      <div className="p-4 text-2xl font-bold border-b border-border">
+    <div className="w-64 bg-[#00FFFF] dark:bg-cyan-800 border-r border-border text-foreground flex flex-col h-screen shadow-md">
+      {/* Tiêu đề Admin Panel */}
+      <div className="p-4 flex items-center gap-2 text-3xl font-extrabold uppercase border-b border-border tracking-wide text-black drop-shadow-md dark:text-white">
+        <Settings className="w-6 h-6" />
         <span>Admin Panel</span>
       </div>
-      {/* Danh sách các mục điều hướng */}
+  
+      {/* Navigation menu */}
       <nav className="flex flex-col p-4 space-y-2 flex-grow overflow-y-auto">
-        {(userRole === "admin" ? adminNavItems : staffNavItems).map((item) => (
-          <Link key={item.name} href={item.href}>
-            <div
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                pathname === item.href
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </div>
-          </Link>
-        ))}
+        {(userRole === "admin" ? adminNavItems : staffNavItems).map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.name} href={item.href}>
+              <div
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 transform active:scale-95 ${
+                  isActive
+                    ? "bg-white/30 text-sky-700 font-semibold dark:text-sky-300"
+                    : "text-black/70 hover:bg-white/20 hover:text-black dark:text-white/70 dark:hover:text-white"
+                }`}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.name}
+              </div>
+            </Link>
+          );
+        })}
       </nav>
-      {/* Phần dưới của thanh bên */}
-      <div className="p-4 border-t border-border space-y-2">
-        <div className="flex justify-between items-center px-3">
+  
+      {/* Footer */}
+      <div className="p-4 border-t border-border bg-cyan-300/30 dark:bg-cyan-900/40 space-y-2">
+        <div className="flex justify-between items-center px-3 text-black dark:text-white">
           <span className="text-sm font-medium">Theme</span>
           <ThemeToggle />
         </div>
+  
         <button
           onClick={() => setChangePasswordOpen(true)}
-          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-black/80 hover:bg-white/20 hover:text-black dark:text-white/70 dark:hover:text-white transition-all active:scale-95"
         >
           <Settings className="mr-3 h-5 w-5" />
           Đổi mật khẩu
         </button>
+  
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-destructive hover:bg-muted"
+          className="flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all active:scale-95"
         >
           <LogOut className="mr-3 h-5 w-5" />
           Đăng xuất
         </button>
       </div>
+  
       <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </div>
-  )
+  );
+  
+  
 }
 
 export default AdminSidebar
