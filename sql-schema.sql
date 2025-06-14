@@ -404,3 +404,14 @@ INSERT INTO public.work_shifts (name, start_time, end_time, days_of_week) VALUES
 
 INSERT INTO public.payment_settings (fee_percentage, min_fee, max_fee) 
 VALUES (10.00, 100000, 5000000);
+
+
+-- Xóa các trường không cần thiết trong bảng contracts
+ALTER TABLE public.contracts
+DROP COLUMN IF EXISTS total_hours,
+DROP COLUMN IF EXISTS hourly_rate,
+DROP COLUMN IF EXISTS total_amount;
+
+-- Thêm các trường mới nếu cần
+ALTER TABLE public.contracts
+ADD COLUMN IF NOT EXISTS fee NUMERIC(10,2);
