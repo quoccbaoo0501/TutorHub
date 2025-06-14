@@ -16,18 +16,14 @@ const adminNavItems = [
   { name: "Quản lí nhân viên", href: "/admin/staff", icon: User },
   { name: "Xếp lịch nhân viên", href: "/admin/schedule", icon: Calendar},
   { name: "Quản lí tài chính", href: "/admin/finance", icon: DollarSign },
-  { name: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
-  { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ]
 
 // Danh sách các mục điều hướng cho trang quản trị - STAFF
 const staffNavItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: Home },
   { name: "Quản lí lớp", href: "/admin/class", icon: BookOpen },
-  { name: "Quản lí hợp đồng", href: "/admin/contracts", icon: FileText },
   { name: "Quản lí khách hàng", href: "/admin/customers", icon: Users },
   { name: "Quản lí gia sư", href: "/admin/tutors", icon: User },
-  { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ]
 
 const AdminSidebar: React.FC = () => {
