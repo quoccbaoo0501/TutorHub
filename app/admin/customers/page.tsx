@@ -180,36 +180,55 @@ export default function AdminCustomersPage() {
             const { data: classesData } = await supabase
               .from("classes")
               .select(`
-                id,
-                name,
-                subject,
-                level,
-                province,
-                district,
-                address,
-                schedule,
-                status,
-                created_at,
-                selected_tutor_id,
-                tutors:selected_tutor_id (
-                  id,
-                  profiles (
-                    full_name,
-                    email,
-                    phone_number
-                  )
-                )
-              `)
+        id,
+        name,
+        subject,
+        level,
+        province,
+        district,
+        address,
+        schedule,
+        status,
+        created_at,
+        selected_tutor_id
+      `)
               .eq("customer_id", customer.id)
               .order("created_at", { ascending: false })
 
+            // Get tutor information separately for matched classes
+            const classesWithTutors = await Promise.all(
+              (classesData || []).map(async (cls) => {
+                if (cls.selected_tutor_id && cls.status === "matched") {
+                  const { data: tutorData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, email, phone_number")
+                    .eq("id", cls.selected_tutor_id)
+                    .single()
+
+                  return {
+                    ...cls,
+                    selected_tutor: tutorData
+                      ? {
+                          id: tutorData.id,
+                          profiles: {
+                            full_name: tutorData.full_name,
+                            email: tutorData.email,
+                            phone_number: tutorData.phone_number,
+                          },
+                        }
+                      : undefined,
+                  }
+                }
+                return {
+                  ...cls,
+                  selected_tutor: undefined,
+                }
+              }),
+            )
+
             return {
               ...customer,
-              classes:
-                classesData?.map((cls) => ({
-                  ...cls,
-                  selected_tutor: cls.tutors,
-                })) || [],
+              classes: classesWithTutors,
             }
           }),
         )

@@ -185,6 +185,11 @@ export default function ProfilePage() {
           return
         }
 
+        if (!profileData) {
+          setError("Không tìm thấy thông tin hồ sơ")
+          return
+        }
+
         setProfile(profileData)
 
         // Nếu người dùng là gia sư, lấy thêm thông tin từ bảng tutors
