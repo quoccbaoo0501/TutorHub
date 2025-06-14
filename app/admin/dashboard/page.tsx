@@ -5,12 +5,15 @@ import { BarChart, BookOpen, DollarSign, Users } from "lucide-react"
 export default function AdminDashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      {/* Tiêu đề và nút tạo báo cáo */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <Button>Tạo báo cáo mới</Button>
       </div>
 
+      {/* Các thẻ thống kê tổng quan */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        {/* Thẻ thống kê số lớp học */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tổng số lớp học</CardTitle>
@@ -21,6 +24,7 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">+12% so với tháng trước</p>
           </CardContent>
         </Card>
+        {/* Thẻ thống kê số khách hàng */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tổng số khách hàng</CardTitle>
@@ -31,6 +35,7 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">+8% so với tháng trước</p>
           </CardContent>
         </Card>
+        {/* Thẻ thống kê số gia sư */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tổng số gia sư</CardTitle>
@@ -41,6 +46,7 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">+4% so với tháng trước</p>
           </CardContent>
         </Card>
+        {/* Thẻ thống kê doanh thu */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Doanh thu tháng</CardTitle>
@@ -53,7 +59,9 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Biểu đồ thống kê */}
       <div className="grid gap-6 md:grid-cols-2 mb-6">
+        {/* Biểu đồ doanh thu */}
         <Card>
           <CardHeader>
             <CardTitle>Thống kê doanh thu</CardTitle>
@@ -66,6 +74,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+        {/* Biểu đồ phân bố lớp học */}
         <Card>
           <CardHeader>
             <CardTitle>Thống kê lớp học</CardTitle>
@@ -80,6 +89,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Danh sách hoạt động gần đây */}
       <Card>
         <CardHeader>
           <CardTitle>Hoạt động gần đây</CardTitle>
@@ -87,6 +97,7 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* Danh sách các hoạt động gần đây */}
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-start border-b pb-4 last:border-0 last:pb-0">
                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 flex items-center justify-center">

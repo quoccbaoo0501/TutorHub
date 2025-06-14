@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import ContractDialog from "@/components/dialogs/contract-dialog"
 
 // Định nghĩa kiểu dữ liệu cho lớp học
 interface Class {
@@ -91,6 +92,13 @@ export default function AdminClassPage() {
   const [tutorApplications, setTutorApplications] = useState<TutorApplication[]>([])
   const [isLoadingTutors, setIsLoadingTutors] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  const [isContractDialogOpen, setIsContractDialogOpen] = useState(false)
+  const [contractData, setContractData] = useState<{
+    tutorProfile: any
+    classData: any
+    contract: any
+  } | null>(null)
 
   const { toast } = useToast()
   const supabase = createClientComponentClient()
@@ -172,6 +180,82 @@ export default function AdminClassPage() {
       direction = "descending"
     }
     setSortConfig({ key, direction })
+  }
+
+  // Sửa hàm handleViewContract để đảm bảo dữ liệu được truyền đúng cách
+  const handleViewContract = async (classItem: Class) => {
+    if (!classItem.selected_tutor_id) {
+      toast({
+        title: "Lỗi",
+        description: "Lớp học này chưa được ghép với gia sư nào.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      // Fetch tutor profile data
+      const { data: tutorData, error: tutorError } = await supabase
+        .from("tutors")
+        .select(`
+        id,
+        education,
+        experience,
+        subjects,
+        profiles (
+          full_name,
+          email,
+          phone_number,
+          gender
+        )
+      `)
+        .eq("id", classItem.selected_tutor_id)
+        .single()
+
+      if (tutorError) {
+        throw tutorError
+      }
+
+      // Fetch contract data if exists
+      const { data: contractData, error: contractError } = await supabase
+        .from("contracts")
+        .select("*")
+        .eq("class_id", classItem.id)
+        .eq("tutor_id", classItem.selected_tutor_id)
+        .single()
+
+      // It's okay if contract doesn't exist yet
+      if (contractError && contractError.code !== "PGRST116") {
+        throw contractError
+      }
+
+      // Combine tutor profile data with tutor data
+      const combinedTutorData = {
+        ...tutorData.profiles,
+        education: tutorData.education,
+        experience: tutorData.experience,
+        subjects: tutorData.subjects,
+      }
+
+      setContractData({
+        tutorProfile: combinedTutorData,
+        classData: classItem,
+        contract: contractData || null,
+      })
+
+      setIsContractDialogOpen(true)
+    } catch (error) {
+      console.error("Error fetching contract data:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin hợp đồng. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Hàm mở dialog chi tiết
@@ -616,6 +700,11 @@ export default function AdminClassPage() {
                             </Button>
                           </>
                         )}
+                        {cls.status === "matched" && (
+                          <Button size="sm" variant="secondary" onClick={() => handleViewContract(cls)}>
+                            Xem hợp đồng
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -665,6 +754,11 @@ export default function AdminClassPage() {
                         Từ chối
                       </Button>
                     </>
+                  )}
+                  {cls.status === "matched" && (
+                    <Button size="sm" variant="secondary" className="w-full" onClick={() => handleViewContract(cls)}>
+                      Xem hợp đồng
+                    </Button>
                   )}
                 </div>
               </div>
@@ -862,6 +956,12 @@ export default function AdminClassPage() {
                     <Button onClick={() => handleApproveClass(selectedClass.id)}>Duyệt lớp học</Button>
                   </div>
                 )}
+
+                {selectedClass?.status === "matched" && (
+                  <div className="flex justify-end space-x-4 mt-4">
+                    <Button onClick={() => handleViewContract(selectedClass)}>Xem hợp đồng</Button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="tutors" className="space-y-4 mt-4">
@@ -886,14 +986,18 @@ export default function AdminClassPage() {
                                   ? "outline"
                                   : application.status === "approved"
                                     ? "secondary"
-                                    : "destructive"
+                                    : application.status === "selected"
+                                      ? "default"
+                                      : "destructive"
                               }
                             >
                               {application.status === "pending"
                                 ? "Chờ duyệt"
                                 : application.status === "approved"
                                   ? "Đã duyệt"
-                                  : "Từ chối"}
+                                  : application.status === "selected"
+                                    ? "Đã chọn"
+                                    : "Từ chối"}
                             </Badge>
                           </div>
                           <CardDescription>
@@ -963,6 +1067,15 @@ export default function AdminClassPage() {
           )}
         </DialogContent>
       </Dialog>
+      {isContractDialogOpen && contractData && (
+        <ContractDialog
+          isOpen={isContractDialogOpen}
+          onClose={() => setIsContractDialogOpen(false)}
+          tutorData={contractData.tutorProfile}
+          classData={contractData.classData}
+          contractData={contractData.contract}
+        />
+      )}
     </div>
   )
 }
