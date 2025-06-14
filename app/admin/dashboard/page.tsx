@@ -71,6 +71,7 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* Danh sách các hoạt động gần đây */}
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}

@@ -1,110 +1,191 @@
-import type React from "react"
-import { Card, CardContent } from "@/components/ui/card"
+"use client"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+// Remove: import ContractDialog from "../dialogs/contract-dialog"
 
-interface TutorClassListProps {
-  tutorApplications: any[] // Replace 'any' with a more specific type if possible
-  onRefresh?: () => void;
+// Định nghĩa kiểu dữ liệu cho lớp học
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import ContractDialog from "../dialogs/contract-dialog"
+
+// Định nghĩa kiểu dữ liệu cho lớp học
+interface ClassItem {
+  id: string
+  name: string
+  subject: string
+  level: string
+  province: string
+  district: string
+  address: string
+  schedule: string
+  status: string
+  created_at: string
+  updated_at: string
+  customer_id: string
+  selected_tutor_id: string
+  customer_profiles?: {
+    full_name: string
+    email?: string
+    phone_number?: string
+  }
 }
 
-const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) => {
-  console.log("TutorClassList applications:", tutorApplications)
-  tutorApplications.forEach((app, index) => {
-    console.log(`Application ${index}:`, app)
-    console.log(`Classes data:`, app.classes)
-  })
+// Update the component signature to accept props:
+interface TutorClassListProps {
+  tutorApplications: any[]
+  onRefresh: () => Promise<void>
+}
 
+export default function TutorClassList({ tutorApplications, onRefresh }: TutorClassListProps) {
+  // Remove all the existing state and useEffect since data is now passed as props
+  // Remove: const [classes, setClasses] = useState<ClassItem[]>([])
+  // Remove: const [isLoading, setIsLoading] = useState(true)
+  // Remove: const entire useEffect block
+  const [isContractDialogOpen, setIsContractDialogOpen] = useState(false)
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+
+  // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị tiếng Việt
+  const getLevelText = (level: string) => {
+    switch (level) {
+      case "primary":
+        return "Tiểu học"
+      case "secondary":
+        return "THCS"
+      case "high":
+        return "THPT"
+      case "university":
+        return "Đại học"
+      case "other":
+        return "Khác"
+      default:
+        return level
+    }
+  }
+
+  // Hàm định dạng ngày tháng theo định dạng Việt Nam
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date)
+  }
+
+  // Hàm mở dialog hợp đồng
+  const handleOpenContractDialog = (classId: string) => {
+    setSelectedClassId(classId)
+    setIsContractDialogOpen(true)
+  }
+
+  // useEffect tải dữ liệu ban đầu khi component được tải
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex justify-center items-center h-64">
+  //       <Loader2 className="h-8 w-8 animate-spin" />
+  //       <span className="ml-2">Đang tải danh sách lớp học...</span>
+  //     </div>
+  //   )
+  // }
+
+  // Hiển thị thông báo nếu không có lớp học nào
+  // Replace the classes.length === 0 check with:
+  if (tutorApplications.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">Bạn chưa được chọn dạy lớp nào.</p>
+      </div>
+    )
+  }
+
+  // Replace the classes.map with tutorApplications.map and update the mapping logic:
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {tutorApplications.map((application) => {
-        if (!application.classes) {
-          return (
-            <Card key={application.id} className="w-full opacity-50">
-              <CardContent className="p-6">
-                <div className="text-center text-gray-500">
-                  <p>Không thể tải thông tin lớp học</p>
-                  <p className="text-sm">ID: {application.class_id}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Các lớp đã đăng ký</h2>
+        <p className="text-muted-foreground">Danh sách các lớp học mà bạn đã đăng ký dạy.</p>
+      </div>
 
-        return (
-          <Card key={application.id} className="w-full">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Class Information */}
-                <div>
-                  <h2 className="text-lg font-semibold text-blue-600">{application.classes.name}</h2>
-                  <p className="text-sm text-gray-600">Môn: {application.classes.subject}</p>
-                  <p className="text-sm text-gray-600">Cấp độ: {application.classes.level}</p>
-                </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {tutorApplications.map((application) => (
+          <Card key={application.id}>
+            <CardHeader>
+              <CardTitle>{application.classes?.subject || "Không xác định"}</CardTitle>
+              <CardDescription>Trạng thái: {application.status}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {application.classes && (
+                  <>
+                    <div className="text-sm">
+                      <span className="font-medium">Tên lớp:</span> {application.classes.name}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Cấp độ:</span> {getLevelText(application.classes.level)}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Địa điểm:</span> {application.classes.district},{" "}
+                      {application.classes.province}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Địa chỉ chi tiết:</span> {application.classes.address}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Lịch học:</span> {application.classes.schedule}
+                    </div>
 
-                {/* Location */}
-                <div>
-                  <h3 className="font-medium text-gray-800">Địa điểm:</h3>
-                  <p className="text-sm text-gray-600">{application.classes.address}</p>
-                  <p className="text-sm text-gray-600">
-                    {application.classes.district}, {application.classes.province}
-                  </p>
-                </div>
+                    {/* Enhanced customer information */}
+                    <div className="border-t pt-2 mt-3">
+                      <div className="text-sm font-medium text-blue-600 mb-2">Thông tin liên hệ khách hàng:</div>
+                      <div className="text-sm">
+                        <span className="font-medium">Tên:</span>{" "}
+                        {application.classes.customer_profiles?.full_name || "Không xác định"}
+                      </div>
+                      {application.classes.customer_profiles?.phone_number && (
+                        <div className="text-sm">
+                          <span className="font-medium">Số điện thoại:</span>{" "}
+                          <a
+                            href={`tel:${application.classes.customer_profiles.phone_number}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {application.classes.customer_profiles.phone_number}
+                          </a>
+                        </div>
+                      )}
+                      {application.classes.customer_profiles?.email && (
+                        <div className="text-sm">
+                          <span className="font-medium">Email:</span>{" "}
+                          <a
+                            href={`mailto:${application.classes.customer_profiles.email}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {application.classes.customer_profiles.email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Schedule */}
-                <div>
-                  <h3 className="font-medium text-gray-800">Lịch học:</h3>
-                  <p className="text-sm text-gray-600">{application.classes.schedule}</p>
-                </div>
-
-                {/* Created Date */}
-                <div>
-                  <h3 className="font-medium text-gray-800">Ngày tạo:</h3>
-                  <p className="text-sm text-gray-600">
-                    {new Date(application.classes.created_at).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-
-                {/* Customer Contact Information - Only show if status is "selected" */}
-                {application.status === "selected" && (
-                  <div className="border-t pt-3">
-                    <h3 className="font-medium text-gray-800">Thông tin liên hệ khách hàng:</h3>
-                    <p className="text-sm text-gray-600">Tên: {application.classes.customer_profiles?.full_name}</p>
-                    <p className="text-sm text-gray-600">Email: {application.classes.customer_profiles?.email}</p>
-                    <p className="text-sm text-gray-600">SĐT: {application.classes.customer_profiles?.phone_number}</p>
-                  </div>
+                    {/* Contract button */}
+                    <div className="pt-3">
+                      <Button
+                        onClick={() => handleOpenContractDialog(application.classes.id)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Xem hợp đồng
+                      </Button>
+                    </div>
+                  </>
                 )}
-
-                {/* Application Status */}
-                <div className="border-t pt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Trạng thái:</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        application.status === "selected"
-                          ? "bg-green-100 text-green-800"
-                          : application.status === "approved"
-                            ? "bg-blue-100 text-blue-800"
-                            : application.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {application.status === "selected"
-                        ? "Đã được chọn"
-                        : application.status === "approved"
-                          ? "Đã duyệt"
-                          : application.status === "pending"
-                            ? "Chờ duyệt"
-                            : application.status}
-                    </span>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
-        )
-      })}
+        ))}
+      </div>
+      {/* Contract Dialog */}
+      {selectedClassId && (
+        <ContractDialog open={isContractDialogOpen} onOpenChange={setIsContractDialogOpen} classId={selectedClassId} />
+      )}
     </div>
   )
 }
-
-export default TutorClassList

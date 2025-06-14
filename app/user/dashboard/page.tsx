@@ -1,3 +1,5 @@
+// Trang Dashboard cho người dùng thông thường
+// Hiển thị danh sách lớp học hoặc gia sư tùy theo vai trò của người dùng
 "use client"
 
 // Import các thư viện và component cần thiết
