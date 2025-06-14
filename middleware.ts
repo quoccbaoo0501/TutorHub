@@ -1,4 +1,5 @@
-// Thêm comments bằng tiếng Việt
+// Middleware xử lý xác thực và phân quyền
+// File này kiểm tra và điều hướng người dùng dựa trên trạng thái đăng nhập và vai trò
 
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
