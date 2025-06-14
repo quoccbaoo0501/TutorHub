@@ -1,116 +1,207 @@
-import type React from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "../ui/button"
+// Component hiển thị danh sách các lớp học của gia sư
+// Hiển thị các lớp học mà gia sư đã được chọn dạy
+"use client"
 
-interface TutorClassListProps {
-  tutorApplications: any[] 
-  onRefresh?: () => void;
+import { useState, useEffect } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import ContractDialog from "../dialogs/contract-dialog"
+
+// Định nghĩa kiểu dữ liệu cho lớp học
+interface ClassItem {
+  id: string
+  name: string
+  subject: string
+  level: string
+  province: string
+  district: string
+  address: string
+  schedule: string
+  status: string
+  created_at: string
+  updated_at: string
+  customer_id: string
+  selected_tutor_id: string
+  customer_profiles?: {
+    full_name: string
+    email?: string
+    phone_number?: string
+  }
 }
 
-const TutorClassList: React.FC<TutorClassListProps> = ({ tutorApplications }) => {
-  console.log("TutorClassList applications:", tutorApplications)
-  tutorApplications.forEach((app, index) => {
-    console.log(`Application ${index}:`, app)
-    console.log(`Classes data:`, app.classes)
-  })
+// Component chính hiển thị danh sách lớp học của gia sư
+export default function TutorClassList() {
+  // State quản lý dữ liệu và trạng thái
+  const [classes, setClasses] = useState<ClassItem[]>([]) // Danh sách các lớp học
+  const [isLoading, setIsLoading] = useState(true) // Trạng thái đang tải
+  const { toast } = useToast() // Hook hiển thị thông báo
+  const supabase = createClientComponentClient() // Khởi tạo Supabase client
+  const [isContractDialogOpen, setIsContractDialogOpen] = useState(false) // Trạng thái mở/đóng dialog hợp đồng
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null) // ID lớp học được chọn để xem hợp đồng
 
+  // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị tiếng Việt
+  const getLevelText = (level: string) => {
+    switch (level) {
+      case "primary":
+        return "Tiểu học"
+      case "secondary":
+        return "THCS"
+      case "high":
+        return "THPT"
+      case "university":
+        return "Đại học"
+      case "other":
+        return "Khác"
+      default:
+        return level
+    }
+  }
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {tutorApplications.map((application) => {
-        if (!application.classes) {
-          return (
-            <Card key={application.id} className="w-full opacity-50">
-              <CardContent className="p-6">
-                <div className="text-center text-gray-500">
-                  <p>Không thể tải thông tin lớp học</p>
-                  <p className="text-sm">ID: {application.class_id}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
+  // Hàm định dạng ngày tháng theo định dạng Việt Nam
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date)
+  }
+
+  // Hàm mở dialog hợp đồng
+  const handleOpenContractDialog = (classId: string) => {
+    setSelectedClassId(classId)
+    setIsContractDialogOpen(true)
+  }
+
+  // useEffect tải dữ liệu ban đầu khi component được tải
+  useEffect(() => {
+    async function fetchClasses() {
+      setIsLoading(true)
+      try {
+        // Lấy thông tin người dùng hiện tại
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData.user) {
+          throw new Error("Không tìm thấy thông tin người dùng")
         }
 
-        return (
-          <Card key={application.id} className="w-full">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Class Information */}
-                <div>
-                  <h2 className="text-lg font-semibold text-blue-600">{application.classes.name}</h2>
-                  <p className="text-sm text-gray-600">Môn: {application.classes.subject}</p>
-                  <p className="text-sm text-gray-600">Cấp độ: {application.classes.level}</p>
+        // Lấy danh sách các lớp học mà gia sư đã được chọn dạy
+        const { data, error } = await supabase
+          .from("classes")
+          .select(`
+            *,
+            customer_profiles:profiles!customer_id(
+              full_name,
+              email,
+              phone_number
+            )
+          `)
+          .eq("selected_tutor_id", userData.user.id)
+          .eq("status", "matched")
+          .order("created_at", { ascending: false })
+
+        if (error) {
+          throw error
+        }
+
+        setClasses(data || [])
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách lớp học:", error)
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải danh sách lớp học. Vui lòng thử lại sau.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchClasses()
+  }, [supabase, toast])
+
+  // Hiển thị trạng thái đang tải
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Đang tải danh sách lớp học...</span>
+      </div>
+    )
+  }
+
+  // Hiển thị thông báo nếu không có lớp học nào
+  if (classes.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">Bạn chưa được chọn dạy lớp nào.</p>
+      </div>
+    )
+  }
+
+  // Phần render chính của component
+  return (
+    <div className="space-y-6">
+      {/* Tiêu đề */}
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Các lớp đã được chọn dạy</h2>
+        <p className="text-muted-foreground">Danh sách các lớp học mà bạn đã được chọn làm gia sư.</p>
+      </div>
+
+      {/* Danh sách các lớp học */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {classes.map((classItem) => (
+          <Card key={classItem.id}>
+            <CardHeader>
+              <CardTitle>{classItem.subject}</CardTitle>
+              <CardDescription>Mã lớp: {classItem.id.substring(0, 8)}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {/* Thông tin chi tiết về lớp học */}
+                <div className="text-sm">
+                  <span className="font-medium">Tên lớp:</span> {classItem.name}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Cấp độ:</span> {getLevelText(classItem.level)}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Địa điểm:</span> {classItem.district}, {classItem.province}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Địa chỉ:</span> {classItem.address}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Lịch học:</span> {classItem.schedule}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Ngày tạo:</span> {formatDate(classItem.created_at)}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Khách hàng:</span>{" "}
+                  {classItem.customer_profiles?.full_name || "Không xác định"}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Liên hệ:</span>{" "}
+                  {classItem.customer_profiles?.phone_number || "Không xác định"}
                 </div>
 
-                {/* Location */}
+                {/* Nút xem hợp đồng */}
                 <div>
-                  <h3 className="font-medium text-gray-800">Địa điểm:</h3>
-                  <p className="text-sm text-gray-600">{application.classes.address}</p>
-                  <p className="text-sm text-gray-600">
-                    {application.classes.district}, {application.classes.province}
-                  </p>
-                </div>
-
-                {/* Schedule */}
-                <div>
-                  <h3 className="font-medium text-gray-800">Lịch học:</h3>
-                  <p className="text-sm text-gray-600">{application.classes.schedule}</p>
-                </div>
-
-                {/* Created Date */}
-                <div>
-                  <h3 className="font-medium text-gray-800">Ngày tạo:</h3>
-                  <p className="text-sm text-gray-600">
-                    {new Date(application.classes.created_at).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-
-                {/* Customer Contact Information - Only show if status is "selected" */}
-                {application.status === "selected" && (
-                  <div className="border-t pt-3">
-                    <h3 className="font-medium text-gray-800">Thông tin liên hệ khách hàng:</h3>
-                    <p className="text-sm text-gray-600">Tên: {application.classes.customer_profiles?.full_name}</p>
-                    <p className="text-sm text-gray-600">Email: {application.classes.customer_profiles?.email}</p>
-                    <p className="text-sm text-gray-600">SĐT: {application.classes.customer_profiles?.phone_number}</p>
-                  </div>
-                )}
-
-                {/* Application Status */}
-                <div className="border-t pt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Trạng thái:</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        application.status === "selected"
-                          ? "bg-green-100 text-green-800"
-                          : application.status === "approved"
-                            ? "bg-blue-100 text-blue-800"
-                            : application.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {application.status === "selected"
-                        ? "Đã được chọn"
-                        : application.status === "approved"
-                          ? "Đã duyệt"
-                          : application.status === "pending"
-                            ? "Chờ duyệt"
-                            : application.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <Button>Hợp đồng</Button>
+                  <Button onClick={() => handleOpenContractDialog(classItem.id)}>Hợp đồng</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )
-      })}
+        ))}
+      </div>
+
+      {/* Dialog hiển thị hợp đồng */}
+      {selectedClassId && (
+        <ContractDialog open={isContractDialogOpen} onOpenChange={setIsContractDialogOpen} classId={selectedClassId} />
+      )}
     </div>
   )
 }
-
-export default TutorClassList

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { User, Menu, X } from "lucide-react"
+import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -24,8 +24,6 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const router = useRouter()
   const pathname = usePathname()
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
   // Khởi tạo Supabase client cho phía client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -99,38 +97,35 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Thanh điều hướng phía trên cho giao diện người dùng */}
-      <header className="bg-background border-b border-border shadow-sm sticky top-0 z-40">
-        <nav className="container mx-auto px-4 py-3 flex justify-between items-center relative">
+      <header className="bg-background border-b border-border shadow-sm">
+        <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div>
             <button onClick={handleRefresh} className="text-xl font-bold hover:text-primary transition-colors">
               TutorHub
             </button>
           </div>
-          <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link
-                href="/user/dashboard"
-                className={`px-3 py-2 rounded transition-colors ${
-                  pathname === "/user/dashboard"
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted cursor-pointer"
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/user/class"
-                className={`px-3 py-2 rounded transition-colors ${
-                  pathname === "/user/class" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted cursor-pointer"
-                }`}
-              >
-                Lớp học
-              </Link>
-            </div>
+          <div className="flex space-x-4 items-center">
+            <Link
+              href="/user/dashboard"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/dashboard"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:bg-muted cursor-pointer"
+              }`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/user/class"
+              className={`px-3 py-2 rounded transition-colors ${
+                pathname === "/user/class" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted cursor-pointer"
+              }`}
+            >
+              Lớp học
+            </Link>
             <ThemeToggle />
 
-            {/* User Menu Dropdown */}
+            {/* Menu dropdown cho hồ sơ người dùng */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -154,35 +149,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                 <DropdownMenuItem onClick={handleLogout}>Đăng xuất</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-            </div>
           </div>
-
-          {/* Mobile Navigation Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-md p-4 space-y-2">
-              <Link
-                href="/user/dashboard"
-                className="block px-3 py-2 rounded hover:bg-muted"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/user/class"
-                className="block px-3 py-2 rounded hover:bg-muted"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Lớp học
-              </Link>
-            </div>
-          )}
         </nav>
       </header>
 
