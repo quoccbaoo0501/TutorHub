@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "../ui/button"
 
 interface TutorClassListProps {
-  tutorApplications: any[] // Replace 'any' with a more specific type if possible
+  tutorApplications: any[] 
   onRefresh?: () => void;
 }
 
