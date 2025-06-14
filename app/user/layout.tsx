@@ -17,6 +17,7 @@ export default function UserLayout({
   const router = useRouter()
 
   // Kiểm tra quyền truy cập khi component được tải
+  // Chỉ cho phép người dùng thông thường (không phải admin/staff) truy cập
   useEffect(() => {
     const checkAuthorization = async () => {
       const supabase = createClientComponentClient({

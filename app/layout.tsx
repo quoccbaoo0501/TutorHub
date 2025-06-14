@@ -6,13 +6,13 @@ import { ThemeProvider } from "@/components/theme-provider"
 export const metadata: Metadata = {
   title: "TutorHub",
   description: "Created by Kevin Baoo",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        {/* ThemeProvider cung cấp chức năng chuyển đổi theme sáng/tối cho toàn bộ ứng dụng */}
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
         </ThemeProvider>
