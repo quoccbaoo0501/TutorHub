@@ -49,7 +49,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex justify-center gap-6 mt-6 flex-wrap animate-fade-in-up animation-delay-500">
+        <div className="flex justify-center gap-6 mt-8 flex-wrap animate-fade-in-up animation-delay-500">
           <Button asChild size="lg" className="gap-2 hover:scale-105 transition-all duration-300 bg-indigo-600 hover:bg-indigo-700">
             <Link href="/login">
               <LogIn className="w-5 h-5" /> Đăng nhập
@@ -59,14 +59,6 @@ export default function Home() {
             <Link href="/register">
               <UserPlus className="w-5 h-5" /> Đăng ký
             </Link>
-          </Button>
-        </div>
-
-        {/* Nút tìm hiểu thêm */}
-        <div className="mt-8 animate-fade-in-up animation-delay-600">
-          <Button variant="ghost" size="sm" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 group">
-            Tìm hiểu thêm
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -204,9 +205,9 @@ export default function LoginForm() {
         <ThemeToggle />
       </div>
       <div className="flex-1 flex flex-col justify-center items-center bg-yellow-50 text-orange-600 relative px-8">
-        <div className="absolute top-6 left-6 text-2xl font-bold text-orange-500">
+        <Link href="/" className="absolute top-6 left-6 text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors">
           TutorHub
-        </div>
+        </Link>
         <div className="text-center">
           <h1 className="text-4xl font-bold font-mono whitespace-nowrap min-h-[3rem]">
             {displayText}
