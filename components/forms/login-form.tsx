@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function LoginForm() {
   // Các state cho form đăng nhập
@@ -166,98 +168,153 @@ export default function LoginForm() {
       setIsLoading(false)
     }
   }
+     
+  const quotes = [
+    "Học, Học nữa, Học mãi",
+    "Tri thức là sức mạnh",
+    "Vươn tới đỉnh cao",
+    "Hiền tài là nguyên khí quốc gia",
+    "Học tập vì đất nước"
+  ];
+  const [quoteIndex, setQuoteIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
 
+  useEffect(() => {
+    const currentQuote = quotes[quoteIndex];
+    if (charIndex < currentQuote.length) {
+      const typingTimeout = setTimeout(() => {
+        setDisplayText(currentQuote.slice(0, charIndex + 1));
+        setCharIndex(charIndex + 1);
+      }, 100);
+      return () => clearTimeout(typingTimeout);
+    } else {
+      const holdTimeout = setTimeout(() => {
+        setCharIndex(0);
+        setDisplayText('');
+        setQuoteIndex((quoteIndex + 1) % quotes.length);
+      }, 2000);
+      return () => clearTimeout(holdTimeout);
+    }
+  }, [charIndex, quoteIndex, quotes]);
+
+  
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Đăng nhập</h1>
-        <p className="text-muted-foreground">Nhập thông tin đăng nhập của bạn để tiếp tục</p>
+    <div className="fixed inset-0 flex">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center bg-yellow-50 text-orange-600 relative px-8">
+        <Link href="/" className="absolute top-6 left-6 text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors">
+          TutorHub
+        </Link>
+        <div className="text-center">
+          <h1 className="text-4xl font-bold font-mono whitespace-nowrap min-h-[3rem]">
+            {displayText}
+            <span className="animate-ping inline-block w-2 h-2 ml-1 bg-orange-500 rounded-full"></span>
+          </h1>
+        </div>
       </div>
 
-      {/* Hiển thị thông báo thành công nếu có */}
-      {successMessage && (
-        <Alert className="bg-green-50 border-green-200">
-          <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
-        </Alert>
-      )}
+      <div className="flex-1 flex items-center justify-center bg-[#7de3eb] dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 border border-cyan-500 dark:border-cyan-300 shadow-2xl rounded-2xl px-6 py-6 w-full max-w-sm text-center space-y-4 transition-colors duration-300 max-h-[90vh] overflow-y-auto">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Đăng nhập</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Nhập thông tin đăng nhập của bạn để tiếp tục
+          </p>
 
-      {/* Hiển thị thông báo lỗi nếu có */}
-      {errorMessage && (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      )}
+          {successMessage && (
+            <Alert className="bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700 text-sm">
+              <AlertDescription className="text-green-800 dark:text-green-100">
+                {successMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          {errorMessage && (
+            <Alert variant="destructive" className="text-sm">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
 
-      <form onSubmit={handleLogin} className="space-y-4">
-        {/* Trường nhập email */}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-        {/* Trường nhập mật khẩu */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Mật khẩu</Label>
+          <form onSubmit={handleLogin} className="space-y-3 text-left">
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-gray-700 dark:text-gray-200 text-sm">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+                className="dark:bg-gray-700 dark:text-white text-sm"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-gray-700 dark:text-gray-200 text-sm">Mật khẩu</Label>
+                <button
+                  type="button"
+                  className="text-xs text-sky-600 hover:underline"
+                  onClick={() => router.push("/reset-password")}
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="dark:bg-gray-700 dark:text-white pr-10 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-gray-500 dark:text-gray-300"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</span>
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-sky-500 hover:bg-sky-600 text-sm"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                "Đăng nhập"
+              )}
+            </Button>
+          </form>
+
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Chưa có tài khoản?{" "}
             <Button
               variant="link"
-              className="p-0 h-auto text-xs"
-              onClick={() => router.push("/reset-password")}
-              type="button"
+              className="text-sky-600 p-0 h-auto text-sm"
+              onClick={() => router.push("/register")}
             >
-              Quên mật khẩu?
+              Đăng ký
             </Button>
-          </div>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-            {/* Nút hiển thị/ẩn mật khẩu */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3"
-              onClick={() => setShowPassword(!showPassword)}
-              disabled={isLoading}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              <span className="sr-only">{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</span>
-            </Button>
-          </div>
+          </p>
         </div>
-        {/* Nút đăng nhập */}
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Đang đăng nhập...
-            </>
-          ) : (
-            "Đăng nhập"
-          )}
-        </Button>
-      </form>
-      {/* Liên kết đến trang đăng ký */}
-      <div className="text-center text-sm">
-        Chưa có tài khoản?{" "}
-        <Button variant="link" className="p-0 h-auto" onClick={() => router.push("/register")}>
-          Đăng ký
-        </Button>
       </div>
     </div>
-  )
+  );
 }
