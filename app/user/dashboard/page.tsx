@@ -85,6 +85,12 @@ export default function UserDashboard() {
   const router = useRouter() // Hook điều hướng
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false) // Trạng thái mở/đóng dialog thông báo hồ sơ chưa được duyệt
 
+  const tutors = [
+    { name: "Thành 1", education: "Cử nhân tầm thường", subject: "Hóa", gender: "Nam", experience: "10" },
+    { name: "Yes ser", education: "yes ser", subject: "yes ser", gender: "Nam", experience: "yes ser" },
+    // Thêm các mẫu khác nếu muốn
+  ];
+
   // Hàm định dạng ngày tháng theo định dạng Việt Nam
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -396,13 +402,10 @@ export default function UserDashboard() {
 
   // Phần render chính của component
   return (
-    <div className="space-y-6">
-      {/* Tiêu đề trang */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Chào mừng bạn đến với TutorHub!</p>
-      </div>
-
+    <div
+      className="min-h-screen w-full py-8 px-2 md:px-8 text-gray-900 dark:text-gray-100 bg-[#7de3eb] dark:bg-[#101a2b]"
+      style={{ fontFamily: 'Roboto, Open Sans, sans-serif' }}
+    >
       {userRole === "tutor" ? (
         // Hiển thị nội dung cho tutor
         <div className="space-y-4">
@@ -419,7 +422,7 @@ export default function UserDashboard() {
             </div>
           ) : (
             // Hiển thị danh sách các lớp học đã được duyệt
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 h-full">
               {approvedClasses.map((classItem) => (
                 <Card key={classItem.id}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -494,7 +497,9 @@ export default function UserDashboard() {
       ) : (
         // Hiển thị nội dung cho customer
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold tracking-tight">Danh sách các gia sư</h2>
+          <div className="inline-block rounded-lg px-6 py-3 text-2xl font-bold text-center mb-6" style={{ color: '#d9534f', fontFamily: 'Roboto, Open Sans, sans-serif', background: 'transparent' }}>
+            Danh sách các gia sư
+          </div>
 
           {/* Hiển thị trạng thái đang tải hoặc danh sách gia sư */}
           {isLoading ? (
@@ -507,34 +512,41 @@ export default function UserDashboard() {
             </div>
           ) : (
             // Hiển thị danh sách các gia sư đã được duyệt
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 h-full">
               {approvedTutors.map((tutor) => (
-                <Card key={tutor.id}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-base font-medium">
+                <Card
+                  key={tutor.id}
+                  className="bg-white dark:bg-[#23272a] border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm transition-shadow duration-200 hover:shadow-lg flex flex-col h-full text-gray-900 dark:text-gray-100"
+                >
+                  <CardHeader className="flex flex-col items-center justify-center space-y-2 pb-2">
+                    <div className="bg-[#e3f2fd] dark:bg-[#22334a] rounded-lg px-4 py-2 text-lg font-semibold text-center w-full border border-blue-100 dark:border-blue-900 text-[#d9534f] dark:text-[#ffb4a9]" style={{ fontFamily: 'Roboto, Open Sans, sans-serif' }}>
                       {tutor.profiles?.full_name || "Không xác định"}
-                    </CardTitle>
-                    <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3 px-2 pb-2">
                       {/* Thông tin chi tiết về gia sư */}
-                      <div className="text-sm">
-                        <span className="font-medium">Học vấn:</span> {tutor.education}
+                      <div className="flex items-center gap-2 text-sm">
+                        {/* Học vấn: GraduationCap icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0c-4.418 0-8-1.79-8-4" /></svg>
+                        <span className="font-medium text-[#8e24aa]">Học vấn:</span> <span className="ml-1">{tutor.education}</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Môn dạy:</span> {tutor.subjects}
+                      <div className="flex items-center gap-2 text-sm">
+                        {/* Môn dạy: BookOpen icon */}
+                        <BookOpen className="h-4 w-4 text-green-600" />
+                        <span className="font-medium text-[#8e24aa]">Môn dạy:</span> <span className="ml-1">{tutor.subjects}</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Giới tính:</span>{" "}
-                        {tutor.profiles ? getGenderText(tutor.profiles.gender) : "Không xác định"}
+                      <div className="flex items-center gap-2 text-sm">
+                        {/* Giới tính: User icon */}
+                        <User className="h-4 w-4 text-pink-500" />
+                        <span className="font-medium text-[#8e24aa]">Giới tính:</span>
+                        <span className="ml-1">{tutor.profiles ? getGenderText(tutor.profiles.gender) : "Không xác định"}</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Kinh nghiệm:</span> {tutor.experience}
+                      <div className="flex items-center gap-2 text-sm">
+                        {/* Kinh nghiệm: Award icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 0V4m0 12v4m4-4h4m-8 0H4" /></svg>
+                        <span className="font-medium text-[#8e24aa]">Kinh nghiệm:</span> <span className="ml-1">{tutor.experience}</span>
                       </div>
-                      <Button variant="outline" size="sm" className="mt-2 w-full">
-                        Xem chi tiết
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>

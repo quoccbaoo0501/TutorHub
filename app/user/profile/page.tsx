@@ -263,154 +263,41 @@ export default function ProfilePage() {
 
   // Hiển thị thông tin hồ sơ
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Hồ sơ của tôi</h1>
-
-      <Card>
+    <div
+      className="min-h-screen w-full py-8 px-2 md:px-8 text-gray-900 dark:text-gray-100 bg-[#7de3eb] dark:bg-[#101a2b]"
+      style={{ fontFamily: 'Roboto, Open Sans, sans-serif' }}
+    >
+      <div className="inline-block rounded-lg px-6 py-3 text-2xl font-bold text-center mb-6" style={{ color: '#d9534f', fontFamily: 'Roboto, Open Sans, sans-serif', background: 'transparent' }}>
+        Hồ sơ của tôi
+      </div>
+      <Card className="bg-white dark:bg-[#23272a] border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
         <CardHeader>
-          <CardTitle>Thông tin cá nhân</CardTitle>
+          <CardTitle className="text-xl font-bold mb-2">Thông tin cá nhân</CardTitle>
           <CardDescription>Thông tin chi tiết về tài khoản của bạn</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {profile && profile ? (
-            <>
-              {/* Badge for tutor approval status */}
-              {profile.role === "tutor" && (
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Trạng thái tài khoản</h3>
-                  <Badge
-                    variant={tutorInfo?.certificate_approve ? "default" : "secondary"}
-                    className={
-                      tutorInfo?.certificate_approve
-                        ? "bg-green-100 text-green-800 border-green-200"
-                        : "bg-yellow-100 text-yellow-800 border-yellow-200"
-                    }
-                  >
-                    {tutorInfo?.certificate_approve ? "Đã được duyệt" : "Chờ duyệt"}
-                  </Badge>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Email</h3>
-                  <p>{profile.email}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Họ và tên</h3>
-                  <p>{profile.full_name || "Chưa cập nhật"}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Giới tính</h3>
-                  <p>{getGenderText(profile.gender)}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Số điện thoại</h3>
-                  <p>{profile.phone_number || "Chưa cập nhật"}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Địa chỉ</h3>
-                  <p>{profile.address || "Chưa cập nhật"}</p>
-                </div>
-              </div>
-
-              {profile.role === "tutor" && (
-                <div className="mt-6 pt-6 border-t">
-                  <h2 className="text-xl font-semibold mb-4">Chứng chỉ bằng cấp</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground mb-2">Tải lên chứng chỉ</h3>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={handleFileChange}
-                        disabled={isUploading}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Chấp nhận file ảnh (JPG, PNG) hoặc PDF. Tối đa 5MB.
-                      </p>
-                      {isUploading && (
-                        <div className="flex items-center mt-2">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          <span className="text-sm">Đang tải lên...</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Certificate status display */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm text-muted-foreground">Trạng thái chứng chỉ</h3>
-                      {tutorInfo?.certificate_image ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span className="text-sm text-green-600">Đã tải lên chứng chỉ</span>
-                          {tutorInfo.certificate_approve ? (
-                            <Badge className="bg-green-100 text-green-800 border-green-200">Đã được duyệt</Badge>
-                          ) : (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                              Chờ duyệt
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                          <span className="text-sm text-gray-600">Chưa tải lên chứng chỉ</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Hiển thị thông tin bổ sung cho gia sư từ bảng tutors */}
-              {profile.role === "tutor" && (
-                <div className="mt-6 pt-6 border-t">
-                  <h2 className="text-xl font-semibold mb-4">Thông tin gia sư</h2>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Học vấn</h3>
-                      <p>{tutorInfo?.education || "Chưa cập nhật"}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Kinh nghiệm</h3>
-                      <p>{tutorInfo?.experience || "Chưa cập nhật"}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Môn dạy</h3>
-                      <p>{tutorInfo?.subjects || "Chưa cập nhật"}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <p>Không tìm thấy thông tin hồ sơ. Vui lòng liên hệ quản trị viên.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Hiển thị dữ liệu JSON cho mục đích debug */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dữ liệu người dùng (Debug)</CardTitle>
-          <CardDescription>Thông tin chi tiết từ cơ sở dữ liệu</CardDescription>
-        </CardHeader>
         <CardContent>
-          <h3 className="text-sm font-medium mb-2">Thông tin hồ sơ:</h3>
-          <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-auto text-xs mb-4">
-            {JSON.stringify(profile, null, 2)}
-          </pre>
-
-          {profile?.role === "tutor" && (
-            <>
-              <h3 className="text-sm font-medium mb-2">Thông tin gia sư:</h3>
-              <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-auto text-xs">
-                {JSON.stringify(tutorInfo, null, 2)}
-              </pre>
-            </>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12">
+            <div>
+              <span className="font-medium text-[#8e24aa]">Email</span>
+              <div>{profile.email}</div>
+            </div>
+            <div>
+              <span className="font-medium text-[#8e24aa]">Họ và tên</span>
+              <div>{profile.full_name}</div>
+            </div>
+            <div>
+              <span className="font-medium text-[#8e24aa]">Giới tính</span>
+              <div>{getGenderText(profile.gender)}</div>
+            </div>
+            <div>
+              <span className="font-medium text-[#8e24aa]">Số điện thoại</span>
+              <div>{profile.phone_number}</div>
+            </div>
+            <div>
+              <span className="font-medium text-[#8e24aa]">Địa chỉ</span>
+              <div>{profile.address}</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
