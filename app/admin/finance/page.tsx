@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { User, Plus, CheckCircle, X, Edit, DollarSign } from "lucide-react"
+import { DollarSign, Plus, CheckCircle, X, Settings, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,50 +20,93 @@ import { Textarea } from "@/components/ui/textarea"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createOrUpdateSalary, paySalary, cancelSalaryPayment, type SalaryData } from "@/app/actions/salary-actions"
-import { useRouter } from "next/navigation"
+import { createPayment, updatePayment, updatePaymentSettings, type PaymentData } from "@/app/actions/payment-actions"
 
-interface Staff {
+interface Class {
   id: string
-  full_name: string
-  email: string
-}
-
-interface StaffSalary {
-  id: string
-  staff_id: string
-  base_salary: number
-  bonus: number
-  deduction: number
-  total_salary: number
-  month: number
-  year: number
+  name: string
+  subject: string
   status: string
-  paid_date?: string
-  notes?: string
-  staff: Staff
+  selected_tutor_id?: string
 }
 
-export default function AdminFinancePage() {
-  const [staffList, setStaffList] = useState<Staff[]>([])
-  const [salaries, setSalaries] = useState<StaffSalary[]>([])
+interface Tutor {
+  id: string
+  profiles: {
+    full_name: string
+    email: string
+  }
+}
+
+interface Contract {
+  id: string
+  fee: number // Sử dụng fee thay vì total_amount
+  start_date: string
+  end_date: string
+  class_id?: string
+  tutor_id?: string
+}
+
+interface Payment {
+  id: string
+  class_id: string
+  tutor_id: string
+  contract_id?: string
+  fee_percentage: number
+  contract_amount: number
+  calculated_fee: number
+  actual_fee: number
+  status: string
+  due_date?: string
+  paid_date?: string
+  payment_method?: string
+  notes?: string
+  created_at: string
+  class: Class
+  tutor: Tutor
+  contract?: Contract
+}
+
+interface PaymentSettings {
+  id: string
+  fee_percentage: number
+  min_fee: number
+  max_fee?: number
+}
+
+export default function PaymentsPage() {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [classes, setClasses] = useState<Class[]>([])
+  const [tutors, setTutors] = useState<Tutor[]>([])
+  const [contracts, setContracts] = useState<Contract[]>([])
+  const [settings, setSettings] = useState<PaymentSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSalaryDialogOpen, setIsSalaryDialogOpen] = useState(false)
-  const [isPayDialogOpen, setIsPayDialogOpen] = useState(false)
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [selectedSalary, setSelectedSalary] = useState<StaffSalary | null>(null)
-  const [salaryForm, setSalaryForm] = useState({
-    staff_id: "",
-    base_salary: "",
-    bonus: "",
-    deduction: "",
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [availableClasses, setAvailableClasses] = useState<Class[]>([])
+
+  const [paymentForm, setPaymentForm] = useState({
+    class_id: "",
+    tutor_id: "",
+    contract_id: "",
+    contract_amount: "",
+    actual_fee: "",
+    due_date: "",
     notes: "",
   })
 
+  const [settingsForm, setSettingsForm] = useState({
+    fee_percentage: "",
+    min_fee: "",
+    max_fee: "",
+  })
+
   const { toast } = useToast()
-  const router = useRouter()
   const supabase = createClientComponentClient()
 
   // Hàm lưu session vào cookies
@@ -93,28 +136,23 @@ export default function AdminFinancePage() {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     })
   }
 
-  // Hàm lấy tên tháng
-  const getMonthName = (month: number) => {
-    const months = [
-      "Tháng 1",
-      "Tháng 2",
-      "Tháng 3",
-      "Tháng 4",
-      "Tháng 5",
-      "Tháng 6",
-      "Tháng 7",
-      "Tháng 8",
-      "Tháng 9",
-      "Tháng 10",
-      "Tháng 11",
-      "Tháng 12",
-    ]
-    return months[month - 1]
+  // Hàm lấy màu badge theo status
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <Badge className="bg-green-100 text-green-800">Đã thanh toán</Badge>
+      case "pending":
+        return <Badge variant="secondary">Chờ thanh toán</Badge>
+      case "overdue":
+        return <Badge variant="destructive">Quá hạn</Badge>
+      case "waived":
+        return <Badge className="bg-blue-100 text-blue-800">Miễn phí</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
   }
 
   // Tải dữ liệu
@@ -141,32 +179,82 @@ export default function AdminFinancePage() {
         return
       }
 
-      // Lấy danh sách nhân viên
-      const { data: staffData, error: staffError } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("role", "staff")
-        .order("full_name")
-
-      if (staffError) throw staffError
-
-      // Lấy danh sách lương theo tháng/năm được chọn
-      const { data: salariesData, error: salariesError } = await supabase
-        .from("staff_salaries")
+      // Lấy danh sách phí môi giới
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("payments")
         .select(
           `
           *,
-          staff:profiles!staff_salaries_staff_id_fkey(id, full_name, email)
+          class:classes!payments_class_id_fkey(id, name, subject, status),
+          tutor:tutors!payments_tutor_id_fkey(id, profiles!tutors_id_fkey(full_name, email)),
+          contract:contracts!payments_contract_id_fkey(id, fee, start_date, end_date)
         `,
         )
-        .eq("month", selectedMonth)
-        .eq("year", selectedYear)
         .order("created_at", { ascending: false })
 
-      if (salariesError) throw salariesError
+      if (paymentsError) throw paymentsError
 
-      setStaffList(staffData || [])
-      setSalaries(salariesData || [])
+      // Lấy danh sách lớp đã có gia sư
+      const { data: classesData, error: classesError } = await supabase
+        .from("classes")
+        .select("id, name, subject, status, selected_tutor_id")
+        .not("selected_tutor_id", "is", null)
+        .eq("status", "matched")
+
+      console.log("Classes data:", classesData) // Debug log
+
+      if (classesError) throw classesError
+
+      // Lấy danh sách gia sư
+      const { data: tutorsData, error: tutorsError } = await supabase
+        .from("tutors")
+        .select("id, profiles!tutors_id_fkey(full_name, email)")
+
+      if (tutorsError) throw tutorsError
+
+      // Lấy danh sách hợp đồng
+      const { data: contractsData, error: contractsError } = await supabase
+        .from("contracts")
+        .select("id, class_id, tutor_id, fee, start_date, end_date")
+        .eq("status", "active")
+
+      if (contractsError) throw contractsError
+
+      // Lấy cài đặt phí môi giới
+      const { data: settingsData, error: settingsError } = await supabase
+        .from("payment_settings")
+        .select("*")
+        .eq("is_active", true)
+        .single()
+
+      if (settingsError && settingsError.code !== "PGRST116") throw settingsError
+
+      setPayments(paymentsData || [])
+      setClasses(classesData || [])
+
+      // Lọc ra những lớp chưa có phí môi giới
+      const classesWithPayments = paymentsData?.map((p) => p.class_id) || []
+      const availableClassesData = classesData?.filter((cls) => !classesWithPayments.includes(cls.id)) || []
+      setAvailableClasses(availableClassesData)
+
+      // Fix tutors data structure
+      const formattedTutors =
+        tutorsData?.map((tutor) => ({
+          id: tutor.id,
+          profiles: tutor.profiles as unknown as { full_name: string; email: string },
+        })) || []
+
+      setTutors(formattedTutors)
+      setContracts(contractsData || [])
+      setSettings(settingsData || null)
+
+      if (settingsData) {
+        setSettingsForm({
+          fee_percentage: settingsData.fee_percentage.toString(),
+          min_fee: settingsData.min_fee.toString(),
+          max_fee: settingsData.max_fee?.toString() || "",
+        })
+      }
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error)
       toast({
@@ -181,33 +269,35 @@ export default function AdminFinancePage() {
 
   useEffect(() => {
     fetchData()
-  }, [selectedMonth, selectedYear])
+  }, [])
 
-  // Hàm mở dialog tạo/sửa lương
-  const handleOpenSalaryDialog = (salary?: StaffSalary) => {
-    if (salary) {
-      setSalaryForm({
-        staff_id: salary.staff_id,
-        base_salary: salary.base_salary.toString(),
-        bonus: salary.bonus.toString(),
-        deduction: salary.deduction.toString(),
-        notes: salary.notes || "",
-      })
-    } else {
-      setSalaryForm({
-        staff_id: "",
-        base_salary: "",
-        bonus: "",
-        deduction: "",
-        notes: "",
-      })
-    }
-    setIsSalaryDialogOpen(true)
+  // Lọc dữ liệu
+  const filteredPayments = payments.filter((payment) => {
+    const matchesStatus = statusFilter === "all" || payment.status === statusFilter
+    const matchesSearch =
+      payment.class.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.tutor.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.class.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
+
+  // Hàm mở dialog tạo phí môi giới
+  const handleOpenPaymentDialog = () => {
+    setPaymentForm({
+      class_id: "",
+      tutor_id: "",
+      contract_id: "",
+      contract_amount: "",
+      actual_fee: "",
+      due_date: "",
+      notes: "",
+    })
+    setIsPaymentDialogOpen(true)
   }
 
-  // Hàm lưu thông tin lương
-  const handleSaveSalary = async () => {
-    if (!salaryForm.staff_id || !salaryForm.base_salary) {
+  // Hàm lưu phí môi giới
+  const handleSavePayment = async () => {
+    if (!paymentForm.class_id || !paymentForm.tutor_id || !paymentForm.contract_amount) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ thông tin bắt buộc.",
@@ -220,17 +310,17 @@ export default function AdminFinancePage() {
     try {
       await saveSessionToCookies()
 
-      const salaryData: SalaryData = {
-        staff_id: salaryForm.staff_id,
-        base_salary: Number.parseFloat(salaryForm.base_salary),
-        bonus: salaryForm.bonus ? Number.parseFloat(salaryForm.bonus) : 0,
-        deduction: salaryForm.deduction ? Number.parseFloat(salaryForm.deduction) : 0,
-        month: selectedMonth,
-        year: selectedYear,
-        notes: salaryForm.notes,
+      const paymentData: PaymentData = {
+        class_id: paymentForm.class_id,
+        tutor_id: paymentForm.tutor_id,
+        contract_id: paymentForm.contract_id || undefined,
+        contract_amount: Number.parseFloat(paymentForm.contract_amount),
+        actual_fee: paymentForm.actual_fee ? Number.parseFloat(paymentForm.actual_fee) : undefined,
+        due_date: paymentForm.due_date || undefined,
+        notes: paymentForm.notes || undefined,
       }
 
-      const result = await createOrUpdateSalary(salaryData)
+      const result = await createPayment(paymentData)
 
       if (!result.success) {
         throw new Error(result.error)
@@ -238,15 +328,15 @@ export default function AdminFinancePage() {
 
       toast({
         title: "Thành công",
-        description: "Lưu thông tin lương thành công.",
+        description: "Tạo phí môi giới thành công.",
       })
 
-      setIsSalaryDialogOpen(false)
+      setIsPaymentDialogOpen(false)
       fetchData()
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error.message || "Không thể lưu thông tin lương.",
+        description: error.message || "Không thể tạo phí môi giới.",
         variant: "destructive",
       })
     } finally {
@@ -254,20 +344,51 @@ export default function AdminFinancePage() {
     }
   }
 
-  // Hàm mở dialog trả lương
-  const handleOpenPayDialog = (salary: StaffSalary) => {
-    setSelectedSalary(salary)
-    setIsPayDialogOpen(true)
+  // Hàm cập nhật trạng thái thanh toán
+  const handleUpdatePaymentStatus = async (paymentId: string, status: string) => {
+    try {
+      await saveSessionToCookies()
+      const result = await updatePayment(paymentId, { status })
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: "Thành công",
+        description: `Cập nhật trạng thái thành công.`,
+      })
+
+      fetchData()
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể cập nhật trạng thái.",
+        variant: "destructive",
+      })
+    }
   }
 
-  // Hàm trả lương
-  const handlePaySalary = async () => {
-    if (!selectedSalary) return
+  // Hàm lưu cài đặt
+  const handleSaveSettings = async () => {
+    if (!settingsForm.fee_percentage || !settingsForm.min_fee) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ thông tin bắt buộc.",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsProcessing(true)
     try {
       await saveSessionToCookies()
-      const result = await paySalary(selectedSalary.id)
+
+      const result = await updatePaymentSettings(
+        Number.parseFloat(settingsForm.fee_percentage),
+        Number.parseFloat(settingsForm.min_fee),
+        settingsForm.max_fee ? Number.parseFloat(settingsForm.max_fee) : undefined,
+      )
 
       if (!result.success) {
         throw new Error(result.error)
@@ -275,45 +396,19 @@ export default function AdminFinancePage() {
 
       toast({
         title: "Thành công",
-        description: "Trả lương thành công.",
+        description: "Cập nhật cài đặt thành công.",
       })
 
-      setIsPayDialogOpen(false)
-      setSelectedSalary(null)
+      setIsSettingsDialogOpen(false)
       fetchData()
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error.message || "Không thể trả lương.",
+        description: error.message || "Không thể cập nhật cài đặt.",
         variant: "destructive",
       })
     } finally {
       setIsProcessing(false)
-    }
-  }
-
-  // Hàm hủy trả lương
-  const handleCancelPayment = async (salaryId: string) => {
-    try {
-      await saveSessionToCookies()
-      const result = await cancelSalaryPayment(salaryId)
-
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-
-      toast({
-        title: "Thành công",
-        description: "Hủy trả lương thành công.",
-      })
-
-      fetchData()
-    } catch (error: any) {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể hủy trả lương.",
-        variant: "destructive",
-      })
     }
   }
 
@@ -328,163 +423,198 @@ export default function AdminFinancePage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Quản lý tài chính - Trả lương nhân viên</h1>
+        <h1 className="text-3xl font-bold">Quản lý phí môi giới</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push("/admin/finance/payments")}>
-            <DollarSign className="mr-2 h-4 w-4" />
-            Phí môi giới
+          <Button variant="outline" onClick={() => setIsSettingsDialogOpen(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            Cài đặt
           </Button>
-          <Button onClick={() => handleOpenSalaryDialog()}>
+          <Button onClick={handleOpenPaymentDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm thông tin lương
+            Tạo phí môi giới
           </Button>
         </div>
       </div>
 
-      {/* Bộ lọc tháng/năm */}
-      <div className="flex gap-4 items-center">
-        <div className="flex items-center gap-2">
-          <Label>Tháng:</Label>
-          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(Number.parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => (
-                <SelectItem key={i + 1} value={(i + 1).toString()}>
-                  {getMonthName(i + 1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Hiển thị cài đặt hiện tại */}
+      {settings && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cài đặt phí môi giới hiện tại</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Phí môi giới (%)</Label>
+                <div className="text-2xl font-bold text-primary">{settings.fee_percentage}%</div>
+              </div>
+              <div>
+                <Label>Phí tối thiểu</Label>
+                <div className="text-lg font-semibold">{formatCurrency(settings.min_fee)}</div>
+              </div>
+              <div>
+                <Label>Phí tối đa</Label>
+                <div className="text-lg font-semibold">
+                  {settings.max_fee ? formatCurrency(settings.max_fee) : "Không giới hạn"}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <div className="flex items-center gap-2">
-          <Label>Năm:</Label>
-          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number.parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - 2 + i
-                return (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                )
-              })}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Bộ lọc */}
+      <div className="flex gap-4 items-center">
+        <Input
+          placeholder="Tìm kiếm theo tên lớp, gia sư, môn học..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="pending">Chờ thanh toán</SelectItem>
+            <SelectItem value="paid">Đã thanh toán</SelectItem>
+            <SelectItem value="overdue">Quá hạn</SelectItem>
+            <SelectItem value="waived">Miễn phí</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Danh sách lương nhân viên */}
+      {/* Danh sách phí môi giới */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {salaries.map((salary) => (
-          <Card key={salary.id}>
+        {filteredPayments.map((payment) => (
+          <Card key={payment.id}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  {salary.staff.full_name}
+                  <DollarSign className="h-5 w-5" />
+                  {payment.class.name}
                 </div>
-                <Badge variant={salary.status === "paid" ? "default" : "secondary"}>
-                  {salary.status === "paid" ? "Đã trả" : "Chưa trả"}
-                </Badge>
+                {getStatusBadge(payment.status)}
               </CardTitle>
-              <div className="text-sm text-muted-foreground">{salary.staff.email}</div>
+              <div className="text-sm text-muted-foreground">
+                <div>Gia sư: {payment.tutor.profiles.full_name}</div>
+                <div>Môn: {payment.class.subject}</div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Lương cơ bản:</span>
-                  <span className="font-medium">{formatCurrency(salary.base_salary)}</span>
+                  <span>Giá trị hợp đồng:</span>
+                  <span className="font-medium">{formatCurrency(payment.contract_amount)}</span>
                 </div>
-                {salary.bonus > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Thưởng:</span>
-                    <span className="font-medium">+{formatCurrency(salary.bonus)}</span>
-                  </div>
-                )}
-                {salary.deduction > 0 && (
-                  <div className="flex justify-between text-red-600">
-                    <span>Khấu trừ:</span>
-                    <span className="font-medium">-{formatCurrency(salary.deduction)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>Phí tính toán ({payment.fee_percentage}%):</span>
+                  <span className="font-medium">{formatCurrency(payment.calculated_fee)}</span>
+                </div>
                 <div className="flex justify-between border-t pt-2">
-                  <span className="font-medium">Tổng cộng:</span>
-                  <span className="font-bold text-lg">{formatCurrency(salary.total_salary)}</span>
+                  <span className="font-medium">Phí thực tế:</span>
+                  <span className="font-bold text-lg">{formatCurrency(payment.actual_fee)}</span>
                 </div>
               </div>
 
-              {salary.notes && (
+              {payment.due_date && (
                 <div className="text-sm text-muted-foreground">
-                  <strong>Ghi chú:</strong> {salary.notes}
+                  <strong>Hạn thanh toán:</strong> {formatDate(payment.due_date)}
                 </div>
               )}
 
-              {salary.paid_date && (
+              {payment.paid_date && (
                 <div className="text-sm text-muted-foreground">
-                  <strong>Ngày trả:</strong> {formatDate(salary.paid_date)}
+                  <strong>Ngày thanh toán:</strong> {formatDate(payment.paid_date)}
                 </div>
               )}
 
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => handleOpenSalaryDialog(salary)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Sửa
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedPayment(payment)
+                    setIsDetailDialogOpen(true)
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  Chi tiết
                 </Button>
-                {salary.status === "pending" ? (
-                  <Button size="sm" onClick={() => handleOpenPayDialog(salary)}>
+                {payment.status === "pending" ? (
+                  <Button size="sm" onClick={() => handleUpdatePaymentStatus(payment.id, "paid")}>
                     <CheckCircle className="h-4 w-4 mr-1" />
-                    Trả lương
+                    Đã thanh toán
                   </Button>
-                ) : (
-                  <Button size="sm" variant="destructive" onClick={() => handleCancelPayment(salary.id)}>
+                ) : payment.status === "paid" ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleUpdatePaymentStatus(payment.id, "pending")}
+                  >
                     <X className="h-4 w-4 mr-1" />
-                    Hủy trả lương
+                    Hủy thanh toán
                   </Button>
-                )}
+                ) : null}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {salaries.length === 0 && (
+      {filteredPayments.length === 0 && (
         <div className="text-center py-10 text-muted-foreground">
-          Chưa có thông tin lương cho tháng {getMonthName(selectedMonth)} năm {selectedYear}.
+          {payments.length === 0 ? "Chưa có phí môi giới nào." : "Không tìm thấy kết quả phù hợp."}
         </div>
       )}
 
-      {/* Dialog thêm/sửa thông tin lương */}
-      <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
+      {/* Dialog tạo phí môi giới */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Thông tin lương nhân viên</DialogTitle>
-            <DialogDescription>
-              Nhập thông tin lương cho tháng {getMonthName(selectedMonth)} năm {selectedYear}
-            </DialogDescription>
+            <DialogTitle>Tạo phí môi giới</DialogTitle>
+            <DialogDescription>Tạo phí môi giới cho lớp đã có gia sư</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>
-                Nhân viên <span className="text-red-500">*</span>
+                Lớp học <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={salaryForm.staff_id}
-                onValueChange={(value) => setSalaryForm({ ...salaryForm, staff_id: value })}
+                value={paymentForm.class_id}
+                onValueChange={(value) => {
+                  setPaymentForm({ ...paymentForm, class_id: value })
+                  // Tự động chọn gia sư của lớp
+                  const selectedClass = availableClasses.find((c) => c.id === value)
+                  if (selectedClass && selectedClass.selected_tutor_id) {
+                    // Tìm hợp đồng tương ứng
+                    const relatedContract = contracts.find(
+                      (c) => c.class_id === value && c.tutor_id === selectedClass.selected_tutor_id,
+                    )
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      class_id: value,
+                      tutor_id: selectedClass.selected_tutor_id || "",
+                      contract_id: relatedContract?.id || "",
+                      contract_amount: relatedContract?.fee?.toString() || "",
+                    }))
+                  }
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn nhân viên" />
+                  <SelectValue placeholder="Chọn lớp học" />
                 </SelectTrigger>
                 <SelectContent>
-                  {staffList.map((staff) => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.full_name}
+                  {availableClasses.length === 0 && (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Không có lớp nào có thể tạo phí môi giới
+                    </div>
+                  )}
+                  {availableClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name} - {cls.subject}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -493,51 +623,113 @@ export default function AdminFinancePage() {
 
             <div className="space-y-2">
               <Label>
-                Lương cơ bản <span className="text-red-500">*</span>
+                Giá trị hợp đồng <span className="text-red-500">*</span>
               </Label>
               <Input
                 type="number"
-                value={salaryForm.base_salary}
-                onChange={(e) => setSalaryForm({ ...salaryForm, base_salary: e.target.value })}
+                value={paymentForm.contract_amount}
+                onChange={(e) => setPaymentForm({ ...paymentForm, contract_amount: e.target.value })}
                 placeholder="0"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Thưởng</Label>
+              <Label>Phí thực tế (để trống để tính tự động)</Label>
               <Input
                 type="number"
-                value={salaryForm.bonus}
-                onChange={(e) => setSalaryForm({ ...salaryForm, bonus: e.target.value })}
-                placeholder="0"
+                value={paymentForm.actual_fee}
+                onChange={(e) => setPaymentForm({ ...paymentForm, actual_fee: e.target.value })}
+                placeholder="Tính tự động theo cài đặt"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Khấu trừ</Label>
+              <Label>Hạn thanh toán</Label>
               <Input
-                type="number"
-                value={salaryForm.deduction}
-                onChange={(e) => setSalaryForm({ ...salaryForm, deduction: e.target.value })}
-                placeholder="0"
+                type="date"
+                value={paymentForm.due_date}
+                onChange={(e) => setPaymentForm({ ...paymentForm, due_date: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
               <Label>Ghi chú</Label>
               <Textarea
-                value={salaryForm.notes}
-                onChange={(e) => setSalaryForm({ ...salaryForm, notes: e.target.value })}
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                 placeholder="Ghi chú thêm..."
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSalaryDialogOpen(false)} disabled={isProcessing}>
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} disabled={isProcessing}>
               Hủy
             </Button>
-            <Button onClick={handleSaveSalary} disabled={isProcessing}>
+            <Button onClick={handleSavePayment} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang tạo...
+                </>
+              ) : (
+                "Tạo"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog cài đặt */}
+      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cài đặt phí môi giới</DialogTitle>
+            <DialogDescription>Cập nhật cài đặt tính phí môi giới</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>
+                Phí môi giới (%) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={settingsForm.fee_percentage}
+                onChange={(e) => setSettingsForm({ ...settingsForm, fee_percentage: e.target.value })}
+                placeholder="10.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Phí tối thiểu (VND) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                value={settingsForm.min_fee}
+                onChange={(e) => setSettingsForm({ ...settingsForm, min_fee: e.target.value })}
+                placeholder="100000"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Phí tối đa (VND)</Label>
+              <Input
+                type="number"
+                value={settingsForm.max_fee}
+                onChange={(e) => setSettingsForm({ ...settingsForm, max_fee: e.target.value })}
+                placeholder="Để trống nếu không giới hạn"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSettingsDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button onClick={handleSaveSettings} disabled={isProcessing}>
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -551,44 +743,94 @@ export default function AdminFinancePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xác nhận trả lương */}
-      <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Dialog chi tiết */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Xác nhận trả lương</DialogTitle>
-            <DialogDescription>Bạn có chắc chắn muốn trả lương cho nhân viên này không?</DialogDescription>
+            <DialogTitle>Chi tiết phí môi giới</DialogTitle>
           </DialogHeader>
 
-          {selectedSalary && (
-            <div className="py-4">
-              <div className="space-y-2">
+          {selectedPayment && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <strong>Nhân viên:</strong> {selectedSalary.staff.full_name}
+                  <Label>Lớp học</Label>
+                  <div className="font-medium">{selectedPayment.class.name}</div>
                 </div>
                 <div>
-                  <strong>Tháng:</strong> {getMonthName(selectedSalary.month)} {selectedSalary.year}
+                  <Label>Môn học</Label>
+                  <div className="font-medium">{selectedPayment.class.subject}</div>
                 </div>
                 <div>
-                  <strong>Tổng lương:</strong> {formatCurrency(selectedSalary.total_salary)}
+                  <Label>Gia sư</Label>
+                  <div className="font-medium">{selectedPayment.tutor.profiles.full_name}</div>
                 </div>
+                <div>
+                  <Label>Email gia sư</Label>
+                  <div className="font-medium">{selectedPayment.tutor.profiles.email}</div>
+                </div>
+                <div>
+                  <Label>Giá trị hợp đồng</Label>
+                  <div className="font-medium">{formatCurrency(selectedPayment.contract_amount)}</div>
+                </div>
+                <div>
+                  <Label>Phí môi giới (%)</Label>
+                  <div className="font-medium">{selectedPayment.fee_percentage}%</div>
+                </div>
+                <div>
+                  <Label>Phí tính toán</Label>
+                  <div className="font-medium">{formatCurrency(selectedPayment.calculated_fee)}</div>
+                </div>
+                <div>
+                  <Label>Phí thực tế</Label>
+                  <div className="font-medium text-lg">{formatCurrency(selectedPayment.actual_fee)}</div>
+                </div>
+                <div>
+                  <Label>Trạng thái</Label>
+                  <div>{getStatusBadge(selectedPayment.status)}</div>
+                </div>
+                <div>
+                  <Label>Ngày tạo</Label>
+                  <div className="font-medium">{formatDate(selectedPayment.created_at)}</div>
+                </div>
+                {selectedPayment.due_date && (
+                  <div>
+                    <Label>Hạn thanh toán</Label>
+                    <div className="font-medium">{formatDate(selectedPayment.due_date)}</div>
+                  </div>
+                )}
+                {selectedPayment.paid_date && (
+                  <div>
+                    <Label>Ngày thanh toán</Label>
+                    <div className="font-medium">{formatDate(selectedPayment.paid_date)}</div>
+                  </div>
+                )}
               </div>
+
+              {selectedPayment.notes && (
+                <div>
+                  <Label>Ghi chú</Label>
+                  <div className="mt-1 p-3 bg-muted rounded-md">{selectedPayment.notes}</div>
+                </div>
+              )}
+
+              {selectedPayment.contract && (
+                <div>
+                  <Label>Thông tin hợp đồng</Label>
+                  <div className="mt-1 p-3 bg-muted rounded-md space-y-1">
+                    <div>Giá trị: {formatCurrency(selectedPayment.contract.fee)}</div>
+                    <div>
+                      Thời gian: {formatDate(selectedPayment.contract.start_date)} -{" "}
+                      {formatDate(selectedPayment.contract.end_date)}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPayDialogOpen(false)} disabled={isProcessing}>
-              Hủy
-            </Button>
-            <Button onClick={handlePaySalary} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xử lý...
-                </>
-              ) : (
-                "Xác nhận trả lương"
-              )}
-            </Button>
+            <Button onClick={() => setIsDetailDialogOpen(false)}>Đóng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
