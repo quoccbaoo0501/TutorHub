@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"
 
 interface ClientLayoutProps {
@@ -24,6 +24,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const router = useRouter()
   const pathname = usePathname()
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [userName, setUserName] = useState<string>("")
   // Khởi tạo Supabase client cho phía client
   const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -94,13 +95,32 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     }
   }
 
+  useEffect(() => {
+    async function fetchUserName() {
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userData.user.id)
+          .single()
+        if (profile?.full_name) setUserName(profile.full_name)
+      }
+    }
+    fetchUserName()
+  }, [supabase])
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Thanh điều hướng phía trên cho giao diện người dùng */}
-      <header className="bg-background border-b border-border shadow-sm">
+      <header className="bg-[#ffe4c4] dark:bg-gray-900 border-b border-border shadow-sm">
         <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div>
-            <button onClick={handleRefresh} className="text-xl font-bold hover:text-primary transition-colors">
+            <button
+              onClick={handleRefresh}
+              className="text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors"
+              style={{ background: 'none', border: 'none', padding: 0 }}
+            >
               TutorHub
             </button>
           </div>
@@ -128,10 +148,13 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             {/* Menu dropdown cho hồ sơ người dùng */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">User menu</span>
-                </Button>
+                <div className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-muted transition">
+                  <span className="text-base font-semibold text-primary">{userName ? `Xin chào, ${userName}` : ""}</span>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                    <span className="sr-only">User menu</span>
+                  </Button>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>

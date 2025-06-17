@@ -139,11 +139,14 @@ const AdminSidebar: React.FC = () => {
   }, [supabase])
 
   return (
-    <div className="w-64 bg-[#00FFFF] dark:bg-cyan-800 border-r border-border text-foreground flex flex-col h-screen shadow-md">
+    <div className="sidebar w-64 bg-[#00FFFF] border-r border-border text-foreground flex flex-col h-screen shadow-xl">
       {/* Tiêu đề Admin Panel */}
-      <div className="p-4 flex items-center gap-2 text-3xl font-extrabold uppercase border-b border-border tracking-wide text-black drop-shadow-md dark:text-white">
-        <Settings className="w-6 h-6" />
-        <span>Admin Panel</span>
+      <div className="admin-title flex justify-center items-center border-b border-border py-8 px-4">
+        <div className="bg-orange-200 rounded-xl px-6 py-3 shadow text-center w-full">
+          <span className="text-2xl font-bold font-sans text-orange-700 drop-shadow-sm tracking-wide">
+            {userRole === "staff" ? "Staff Panel" : "Admin Panel"}
+          </span>
+        </div>
       </div>
   
       {/* Navigation menu */}
@@ -155,8 +158,8 @@ const AdminSidebar: React.FC = () => {
               <div
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 transform active:scale-95 ${
                   isActive
-                    ? "bg-white/30 text-sky-700 font-semibold dark:text-sky-300"
-                    : "text-black/70 hover:bg-white/20 hover:text-black dark:text-white/70 dark:hover:text-white"
+                    ? "bg-purple-200 text-purple-800 font-semibold dark:bg-purple-800 dark:text-white"
+                    : "text-black/70 hover:bg-white/20 hover:text-black dark:text-black dark:hover:bg-white/10"
                 }`}
               >
                 <item.icon className="h-5 w-5" />

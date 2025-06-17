@@ -8,7 +8,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-8 sm:p-24 relative text-foreground bg-gradient-to-br from-cyan-300 via-sky-200 to-blue-200 dark:from-gray-900 dark:via-gray-950 dark:to-black transition-colors duration-500">
       
       {/* Lớp phủ mờ tùy chế độ sáng/tối */}
-      <div className="absolute inset-0 -z-10 bg-white/30 dark:bg-black/40"></div>
+      <div className="fixed inset-0 w-screen h-screen bg-[#2196f3] dark:bg-[#0a1929] -z-10" />
 
       {/* Nút đổi theme */}
       <div className="absolute top-4 right-4">

@@ -267,8 +267,10 @@ export default function ProfilePage() {
       className="min-h-screen w-full py-8 px-2 md:px-8 text-gray-900 dark:text-gray-100 bg-[#7de3eb] dark:bg-[#101a2b]"
       style={{ fontFamily: 'Roboto, Open Sans, sans-serif' }}
     >
-      <div className="inline-block rounded-lg px-6 py-3 text-2xl font-bold text-center mb-6" style={{ color: '#d9534f', fontFamily: 'Roboto, Open Sans, sans-serif', background: 'transparent' }}>
-        Hồ sơ của tôi
+      <div className="flex justify-center">
+        <div className="inline-block rounded-2xl border border-orange-200 bg-orange-50 px-8 py-3 text-2xl font-bold text-orange-700 text-center shadow-sm mb-6">
+          Hồ sơ của tôi
+        </div>
       </div>
       <Card className="bg-white dark:bg-[#23272a] border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
         <CardHeader>
