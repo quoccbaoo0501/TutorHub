@@ -239,117 +239,118 @@ export default function AdminCustomersPage() {
     }
   }
 
-  // Tải dữ liệu khách hàng từ Supabase
-  useEffect(() => {
-    async function fetchCustomers() {
-      setIsLoading(true)
-      try {
-        // Check authentication first
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
-        if (sessionError) {
-          console.error("Session error:", sessionError)
-          window.location.href = "/login"
-          return
-        }
-        if (!session) {
-          window.location.href = "/login"
-          return
-        }
+  // Move fetchCustomers out of useEffect so it can be called anywhere
+  const fetchCustomers = async () => {
+    setIsLoading(true)
+    try {
+      // Check authentication first
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error("Session error:", sessionError)
+        window.location.href = "/login"
+        return
+      }
+      if (!session) {
+        window.location.href = "/login"
+        return
+      }
 
-        const { data: customersData, error: customersError } = await supabase
-          .from("profiles")
-          .select(`
-            id,
-            full_name,
-            email,
-            phone_number,
-            address,
-            gender,
-            created_at
-          `)
-          .eq("role", "customer")
-          .order("created_at", { ascending: false })
+      const { data: customersData, error: customersError } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone_number,
+          address,
+          gender,
+          created_at
+        `)
+        .eq("role", "customer")
+        .order("created_at", { ascending: false })
 
-        if (customersError) {
-          throw customersError
-        }
+      if (customersError) {
+        throw customersError
+      }
 
-        // Lấy thông tin lớp học cho mỗi khách hàng
-        const customersWithClasses = await Promise.all(
-          (customersData || []).map(async (customer) => {
-            const { data: classesData } = await supabase
-              .from("classes")
-              .select(`
-        id,
-        name,
-        subject,
-        level,
-        province,
-        district,
-        address,
-        schedule,
-        status,
-        created_at,
-        selected_tutor_id
-      `)
-              .eq("customer_id", customer.id)
-              .order("created_at", { ascending: false })
+      // Lấy thông tin lớp học cho mỗi khách hàng
+      const customersWithClasses = await Promise.all(
+        (customersData || []).map(async (customer) => {
+          const { data: classesData } = await supabase
+            .from("classes")
+            .select(`
+      id,
+      name,
+      subject,
+      level,
+      province,
+      district,
+      address,
+      schedule,
+      status,
+      created_at,
+      selected_tutor_id
+    `)
+            .eq("customer_id", customer.id)
+            .order("created_at", { ascending: false })
 
-            // Get tutor information separately for matched classes
-            const classesWithTutors = await Promise.all(
-              (classesData || []).map(async (cls) => {
-                if (cls.selected_tutor_id && cls.status === "matched") {
-                  const { data: tutorData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, email, phone_number")
-                    .eq("id", cls.selected_tutor_id)
-                    .single()
+          // Get tutor information separately for matched classes
+          const classesWithTutors = await Promise.all(
+            (classesData || []).map(async (cls) => {
+              if (cls.selected_tutor_id && cls.status === "matched") {
+                const { data: tutorData } = await supabase
+                  .from("profiles")
+                  .select("id, full_name, email, phone_number")
+                  .eq("id", cls.selected_tutor_id)
+                  .single()
 
-                  return {
-                    ...cls,
-                    selected_tutor: tutorData
-                      ? {
-                          id: tutorData.id,
-                          profiles: {
-                            full_name: tutorData.full_name,
-                            email: tutorData.email,
-                            phone_number: tutorData.phone_number,
-                          },
-                        }
-                      : undefined,
-                  }
-                }
                 return {
                   ...cls,
-                  selected_tutor: undefined,
+                  selected_tutor: tutorData
+                    ? {
+                        id: tutorData.id,
+                        profiles: {
+                          full_name: tutorData.full_name,
+                          email: tutorData.email,
+                          phone_number: tutorData.phone_number,
+                        },
+                      }
+                    : undefined,
                 }
-              }),
-            )
+              }
+              return {
+                ...cls,
+                selected_tutor: undefined,
+              }
+            }),
+          )
 
-            return {
-              ...customer,
-              classes: classesWithTutors,
-            }
-          }),
-        )
+          return {
+            ...customer,
+            classes: classesWithTutors,
+          }
+        }),
+      )
 
-        setCustomers(customersWithClasses)
-        setFilteredCustomers(customersWithClasses)
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách khách hàng:", error)
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách khách hàng. Vui lòng thử lại sau.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+      setCustomers(customersWithClasses)
+      setFilteredCustomers(customersWithClasses)
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách khách hàng:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách khách hàng. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  // useEffect chỉ gọi fetchCustomers
+  useEffect(() => {
     fetchCustomers()
   }, [supabase, toast])
 
@@ -423,7 +424,7 @@ export default function AdminCustomersPage() {
     return Object.keys(errors).length === 0
   }
 
-  // Hàm xử lý submit form
+  // handleSubmitForm: gọi await fetchCustomers() trước khi đóng dialog
   const handleSubmitForm = async () => {
     if (!validateForm() || !editingCustomer) return
 
@@ -447,8 +448,8 @@ export default function AdminCustomersPage() {
         description: "Cập nhật thông tin khách hàng thành công.",
       })
 
+      await fetchCustomers() // Đảm bảo lấy lại dữ liệu mới nhất
       setIsFormDialogOpen(false)
-      fetchCustomers()
     } catch (error) {
       console.error("Lỗi khi cập nhật khách hàng:", error)
       toast({
