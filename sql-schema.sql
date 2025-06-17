@@ -415,3 +415,57 @@ DROP COLUMN IF EXISTS total_amount;
 -- Thêm các trường mới nếu cần
 ALTER TABLE public.contracts
 ADD COLUMN IF NOT EXISTS fee NUMERIC(10,2);
+
+
+
+
+
+-- Cập nhật policies cho bảng profiles để admin có thể xóa
+DROP POLICY IF EXISTS profiles_delete_policy ON public.profiles;
+CREATE POLICY profiles_delete_policy ON public.profiles FOR DELETE TO authenticated USING (
+  auth.uid() = id 
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Cập nhật policies cho bảng tutors để admin có thể xóa
+DROP POLICY IF EXISTS tutors_delete_policy ON public.tutors;
+CREATE POLICY tutors_delete_policy ON public.tutors FOR DELETE TO authenticated USING (
+  auth.uid() = id 
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Cập nhật policies cho bảng customers để admin có thể xóa
+DROP POLICY IF EXISTS customers_delete_policy ON public.customers;
+CREATE POLICY customers_delete_policy ON public.customers FOR DELETE TO authenticated USING (
+  auth.uid() = id 
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Thêm policy delete cho bảng contracts
+DROP POLICY IF EXISTS contracts_delete_policy ON public.contracts;
+CREATE POLICY contracts_delete_policy ON public.contracts FOR DELETE TO authenticated USING (
+  auth.uid() = customer_id
+  OR auth.uid() = tutor_id
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Thêm policy delete cho bảng tutor_applications (đã có nhưng cần cập nhật)
+DROP POLICY IF EXISTS tutor_applications_delete_own ON public.tutor_applications;
+CREATE POLICY tutor_applications_delete_policy ON public.tutor_applications FOR DELETE TO authenticated USING (
+  auth.uid() = tutor_id
+  OR EXISTS (SELECT 1 FROM public.classes cl WHERE cl.id = tutor_applications.class_id AND cl.customer_id = auth.uid())
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Thêm policy delete cho bảng payments
+DROP POLICY IF EXISTS payments_delete_policy ON public.payments;
+CREATE POLICY payments_delete_policy ON public.payments FOR DELETE TO authenticated USING (
+  (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
+
+-- Cập nhật policy delete cho classes để admin có thể xóa
+DROP POLICY IF EXISTS classes_delete_owner ON public.classes;
+CREATE POLICY classes_delete_policy ON public.classes FOR DELETE TO authenticated USING (
+  auth.uid() = customer_id
+  OR (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' = 'admin'
+);
