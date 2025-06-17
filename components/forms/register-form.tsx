@@ -123,7 +123,7 @@ export default function RegisterForm() {
   // Nếu đăng ký thành công, hiển thị thông báo
   if (success) {
     return (
-      <Card className="w-full max-w-md mx-auto">
+      <Card className="w-full max-w-md mx-auto shadow-2xl rounded-2xl bg-white dark:bg-gray-800 border border-cyan-500 dark:border-cyan-300">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Đăng ký thành công!</CardTitle>
         </CardHeader>
@@ -142,7 +142,7 @@ export default function RegisterForm() {
             <Button
               variant="outline"
               onClick={() => (window.location.href = "https://mail.google.com")}
-              className="ml-2"
+              className="ml-2 border-cyan-700 text-cyan-700 dark:border-cyan-400 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900 transition-all duration-300"
             >
               Mở Gmail
             </Button>
@@ -153,7 +153,7 @@ export default function RegisterForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto shadow-2xl rounded-2xl bg-white dark:bg-gray-800 border border-cyan-500 dark:border-cyan-300">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">Tạo tài khoản</CardTitle>
       </CardHeader>
@@ -356,7 +356,11 @@ export default function RegisterForm() {
           </div>
 
           {/* Nút đăng ký */}
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full bg-cyan-700 hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all duration-300"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -409,7 +409,11 @@ export default function UserDashboard() {
       {userRole === "tutor" ? (
         // Hiển thị nội dung cho tutor
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold tracking-tight">Danh sách các lớp đã được duyệt</h2>
+          <div className="flex justify-center">
+            <div className="inline-block rounded-2xl border border-orange-200 bg-orange-50 px-8 py-3 text-2xl font-bold text-orange-700 text-center shadow-sm">
+              Danh sách lớp hiện cần gia sư
+            </div>
+          </div>
 
           {/* Hiển thị trạng thái đang tải hoặc danh sách lớp học */}
           {isLoading ? (
@@ -422,35 +426,47 @@ export default function UserDashboard() {
             </div>
           ) : (
             // Hiển thị danh sách các lớp học đã được duyệt
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 h-full">
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 h-full">
               {approvedClasses.map((classItem) => (
-                <Card key={classItem.id}>
+                <Card
+                  key={classItem.id}
+                  className="bg-white text-[#333] rounded-2xl shadow-lg flex flex-col justify-between p-6 transition-transform duration-200 hover:scale-[1.02] min-h-[320px]"
+                >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-base font-medium">{classItem.subject}</CardTitle>
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <span role="img" aria-label="book">📚</span> {classItem.subject}
+                    </CardTitle>
+                    <BookOpen className="h-5 w-5 text-blue-400" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
+                  <CardContent className="flex-1 flex flex-col justify-center">
+                    <div className="space-y-3">
                       {/* Thông tin chi tiết về lớp học */}
-                      <div className="text-sm">
-                        <span className="font-medium">Cấp độ:</span> {getLevelText(classItem.level)}
+                      <div className="flex items-center gap-2 text-base">
+                        <span role="img" aria-label="level">🏫</span>
+                        <span className="font-semibold">Cấp độ:</span> <span>{getLevelText(classItem.level)}</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Địa điểm:</span> {classItem.district}, {classItem.province}
+                      <div className="flex items-center gap-2 text-base">
+                        <span role="img" aria-label="location">📍</span>
+                        <span className="font-semibold">Địa điểm:</span> <span>{classItem.district}, {classItem.province}</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Lịch học:</span> {classItem.schedule}
+                      <div className="flex items-center gap-2 text-base">
+                        <span role="img" aria-label="schedule">📅</span>
+                        <span className="font-semibold">Lịch học:</span> <span>{classItem.schedule}</span>
                       </div>
-
-                      <div className="text-sm">
-                        <span className="font-medium">Ngày tạo:</span> {formatDate(classItem.created_at)}
+                      <div className="flex items-center gap-2 text-base">
+                        <span role="img" aria-label="date">🗓️</span>
+                        <span className="font-semibold">Ngày tạo:</span> <span>{formatDate(classItem.created_at)}</span>
                       </div>
                       {/* Nút đăng ký hoặc hủy đăng ký dạy lớp */}
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2 mt-4">
                         <Button
                           variant={registeredClasses.includes(classItem.id) ? "outline" : "default"}
                           size="sm"
-                          className="flex-1"
+                          className={`flex-1 font-bold text-white ${
+                            registeredClasses.includes(classItem.id)
+                              ? 'bg-red-500 hover:bg-red-600 border-0 shadow-md'
+                              : 'bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 border-0 shadow-md'
+                          }`}
                           disabled={isCertificateApproved === null}
                           onClick={() => {
                             if (registeredClasses.includes(classItem.id)) {
