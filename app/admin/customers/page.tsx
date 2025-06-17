@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Định nghĩa kiểu dữ liệu cho khách hàng
 interface Customer {
@@ -59,6 +69,11 @@ export default function AdminCustomersPage() {
 
   const { toast } = useToast()
   const supabase = createClientComponentClient()
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // Hàm chuyển đổi mã giới tính thành văn bản hiển thị
   const getGenderText = (gender: string | undefined | null) => {
@@ -133,6 +148,52 @@ export default function AdminCustomersPage() {
         return "Đã hủy"
       default:
         return status
+    }
+  }
+
+  // Hàm xử lý xóa khách hàng
+  const handleDeleteCustomer = async (customerId: string) => {
+    try {
+      setIsProcessing(true)
+
+      // Lấy danh sách lớp học của khách hàng
+      const { data: customerClasses } = await supabase.from("classes").select("id").eq("customer_id", customerId)
+
+      // Xóa các bản ghi liên quan cho từng lớp học
+      if (customerClasses && customerClasses.length > 0) {
+        for (const cls of customerClasses) {
+          await supabase.from("tutor_applications").delete().eq("class_id", cls.id)
+          await supabase.from("contracts").delete().eq("class_id", cls.id)
+        }
+
+        // Xóa tất cả lớp học của khách hàng
+        await supabase.from("classes").delete().eq("customer_id", customerId)
+      }
+
+      // Xóa profile của khách hàng
+      const { error } = await supabase.from("profiles").delete().eq("id", customerId)
+
+      if (error) throw error
+
+      // Cập nhật state
+      setCustomers((prevCustomers) => prevCustomers.filter((customer) => customer.id !== customerId))
+
+      toast({
+        title: "Thành công",
+        description: "Đã xóa khách hàng và tất cả dữ liệu liên quan thành công.",
+      })
+
+      setDeleteConfirmOpen(false)
+      setCustomerToDelete(null)
+    } catch (error) {
+      console.error("Lỗi khi xóa khách hàng:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa khách hàng. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -250,6 +311,20 @@ export default function AdminCustomersPage() {
     fetchCustomers()
   }, [supabase, toast])
 
+  // Lấy role của user hiện tại
+  useEffect(() => {
+    const getUserRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session?.user) {
+        const userRole = session.user.user_metadata?.role
+        setUserRole(userRole)
+      }
+    }
+    getUserRole()
+  }, [supabase])
+
   // Lọc và sắp xếp dữ liệu khi các điều kiện thay đổi
   useEffect(() => {
     // Lọc dữ liệu theo từ khóa tìm kiếm
@@ -359,9 +434,23 @@ export default function AdminCustomersPage() {
                       {formatDate(customer.created_at).split(",")[0]}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <Button size="sm" variant="outline" onClick={() => handleOpenDetails(customer)}>
-                        Chi tiết
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button size="sm" variant="outline" onClick={() => handleOpenDetails(customer)}>
+                          Chi tiết
+                        </Button>
+                        {userRole === "admin" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setCustomerToDelete(customer.id)
+                              setDeleteConfirmOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -383,9 +472,25 @@ export default function AdminCustomersPage() {
                   <Calendar className="h-4 w-4" />
                   <span>Ngày tạo: {formatDate(customer.created_at).split(",")[0]}</span>
                 </div>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenDetails(customer)}>
-                  Chi tiết
-                </Button>
+                <div className="flex flex-col space-y-2">
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenDetails(customer)}>
+                    Chi tiết
+                  </Button>
+                  {userRole === "admin" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        setCustomerToDelete(customer.id)
+                        setDeleteConfirmOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa khách hàng
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -550,6 +655,29 @@ export default function AdminCustomersPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Alert Dialog xác nhận xóa */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa khách hàng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu
+              liên quan bao gồm các lớp học, đơn đăng ký và hợp đồng.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => customerToDelete && handleDeleteCustomer(customerToDelete)}
+              disabled={isProcessing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isProcessing ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, ArrowUpDown, Calendar, Users, User, Book, Clock, FileText, MapPin } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, Users, User, Book, Clock, FileText, MapPin, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,16 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import ContractDialog from "@/components/dialogs/contract-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Định nghĩa kiểu dữ liệu cho lớp học
 interface Class {
@@ -108,6 +118,10 @@ export default function AdminClassPage() {
 
   // Danh sách các cấp độ lớp học
   const levels = ["all", "primary", "secondary", "high", "university", "other"]
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [classToDelete, setClassToDelete] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị
   const getLevelText = (level: string) => {
@@ -404,6 +418,20 @@ export default function AdminClassPage() {
     checkAuth()
   }, [supabase])
 
+  // Lấy role của user hiện tại
+  useEffect(() => {
+    const getUserRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session?.user) {
+        const userRole = session.user.user_metadata?.role
+        setUserRole(userRole)
+      }
+    }
+    getUserRole()
+  }, [supabase])
+
   // Lọc và sắp xếp dữ liệu khi các điều kiện thay đổi
   useEffect(() => {
     // Lọc dữ liệu theo từ khóa tìm kiếm và trạng thái
@@ -569,6 +597,42 @@ export default function AdminClassPage() {
     }
   }
 
+  // Hàm xử lý xóa lớp học
+  const handleDeleteClass = async (classId: string) => {
+    try {
+      setIsProcessing(true)
+
+      // Xóa các bản ghi liên quan trước
+      await supabase.from("tutor_applications").delete().eq("class_id", classId)
+      await supabase.from("contracts").delete().eq("class_id", classId)
+
+      // Xóa lớp học
+      const { error } = await supabase.from("classes").delete().eq("id", classId)
+
+      if (error) throw error
+
+      // Cập nhật state
+      setClasses((prevClasses) => prevClasses.filter((cls) => cls.id !== classId))
+
+      toast({
+        title: "Thành công",
+        description: "Đã xóa lớp học thành công.",
+      })
+
+      setDeleteConfirmOpen(false)
+      setClassToDelete(null)
+    } catch (error) {
+      console.error("Lỗi khi xóa lớp học:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa lớp học. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   // Hàm lấy màu badge dựa trên trạng thái
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -705,6 +769,18 @@ export default function AdminClassPage() {
                             Xem hợp đồng
                           </Button>
                         )}
+                        {userRole === "admin" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setClassToDelete(cls.id)
+                              setDeleteConfirmOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -758,6 +834,20 @@ export default function AdminClassPage() {
                   {cls.status === "matched" && (
                     <Button size="sm" variant="secondary" className="w-full" onClick={() => handleViewContract(cls)}>
                       Xem hợp đồng
+                    </Button>
+                  )}
+                  {userRole === "admin" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        setClassToDelete(cls.id)
+                        setDeleteConfirmOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa lớp học
                     </Button>
                   )}
                 </div>
@@ -1076,6 +1166,28 @@ export default function AdminClassPage() {
           contractData={contractData.contract}
         />
       )}
+      {/* Alert Dialog xác nhận xóa */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa lớp học</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa lớp học này không? Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu
+              liên quan bao gồm đơn đăng ký của gia sư và hợp đồng.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => classToDelete && handleDeleteClass(classToDelete)}
+              disabled={isProcessing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isProcessing ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

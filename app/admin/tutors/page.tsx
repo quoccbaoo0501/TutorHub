@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Eye, Check, X } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Eye, Check, X, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Định nghĩa kiểu dữ liệu cho gia sư
 interface Tutor {
@@ -28,6 +38,7 @@ interface Tutor {
     phone_number?: string
     address?: string
     gender?: string
+    id: string
   }
 }
 
@@ -48,6 +59,9 @@ export default function AdminTutorsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [certificateImageUrl, setCertificateImageUrl] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [tutorToDelete, setTutorToDelete] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   const { toast } = useToast()
   const supabase = createClientComponentClient()
@@ -165,6 +179,7 @@ export default function AdminTutorsPage() {
             created_at,
             updated_at,
             profiles!inner (
+              id,
               full_name,
               email,
               phone_number,
@@ -327,6 +342,66 @@ export default function AdminTutorsPage() {
     }
   }
 
+  // Hàm xử lý xóa gia sư
+  const handleDeleteTutor = async (tutorId: string) => {
+    try {
+      setIsProcessing(true)
+
+      // Lấy profile ID của gia sư
+      const { data: tutorData } = await supabase.from("tutors").select("profiles(id)").eq("id", tutorId).single()
+
+      if (!tutorData?.profiles) {
+        throw new Error("Không tìm thấy thông tin gia sư")
+      }
+
+      // Xử lý trường hợp profiles có thể là array hoặc object
+      const profiles = Array.isArray(tutorData.profiles) ? tutorData.profiles[0] : tutorData.profiles
+      const profileId = profiles?.id
+
+      if (!profileId) {
+        throw new Error("Không tìm thấy ID profile của gia sư")
+      }
+
+      // Xóa các bản ghi liên quan
+      await supabase.from("tutor_applications").delete().eq("tutor_id", tutorId)
+      await supabase.from("contracts").delete().eq("tutor_id", tutorId)
+
+      // Cập nhật các lớp học đã chọn gia sư này
+      await supabase
+        .from("classes")
+        .update({ selected_tutor_id: null, status: "approved" })
+        .eq("selected_tutor_id", tutorId)
+
+      // Xóa bản ghi trong bảng tutors
+      await supabase.from("tutors").delete().eq("id", tutorId)
+
+      // Xóa profile của gia sư
+      const { error } = await supabase.from("profiles").delete().eq("id", profileId)
+
+      if (error) throw error
+
+      // Cập nhật state
+      setTutors((prevTutors) => prevTutors.filter((tutor) => tutor.id !== tutorId))
+
+      toast({
+        title: "Thành công",
+        description: "Đã xóa gia sư và tất cả dữ liệu liên quan thành công.",
+      })
+
+      setDeleteConfirmOpen(false)
+      setTutorToDelete(null)
+    } catch (error) {
+      console.error("Lỗi khi xóa gia sư:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa gia sư. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   // Hàm lấy màu badge dựa trên trạng thái
   const getStatusBadgeVariant = (approved: boolean) => {
     return approved ? "default" : "secondary"
@@ -359,6 +434,20 @@ export default function AdminTutorsPage() {
     }
 
     checkAuth()
+  }, [supabase])
+
+  // Lấy role của user hiện tại
+  useEffect(() => {
+    const getUserRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session?.user) {
+        const userRole = session.user.user_metadata?.role
+        setUserRole(userRole)
+      }
+    }
+    getUserRole()
   }, [supabase])
 
   return (
@@ -470,6 +559,18 @@ export default function AdminTutorsPage() {
                             Từ chối
                           </Button>
                         )}
+                        {userRole === "admin" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setTutorToDelete(tutor.id)
+                              setDeleteConfirmOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -521,6 +622,20 @@ export default function AdminTutorsPage() {
                       disabled={isProcessing}
                     >
                       Từ chối
+                    </Button>
+                  )}
+                  {userRole === "admin" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        setTutorToDelete(tutor.id)
+                        setDeleteConfirmOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa gia sư
                     </Button>
                   )}
                 </div>
@@ -684,6 +799,29 @@ export default function AdminTutorsPage() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Alert Dialog xác nhận xóa */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa gia sư</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa gia sư này không? Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên
+              quan bao gồm đơn đăng ký và hợp đồng. Các lớp học đã ghép với gia sư này sẽ được chuyển về trạng thái "Đã
+              duyệt".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => tutorToDelete && handleDeleteTutor(tutorToDelete)}
+              disabled={isProcessing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isProcessing ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
