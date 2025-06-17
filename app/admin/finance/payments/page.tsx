@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Plus, CheckCircle, X, Settings, Eye } from "lucide-react"
+import { DollarSign, Plus, CheckCircle, X, Settings, Eye, BookOpen, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -74,6 +74,17 @@ interface PaymentSettings {
   max_fee?: number
 }
 
+interface Stats {
+  totalClasses: number
+  totalCustomers: number
+  totalTutors: number
+  totalStaff: number
+  newClassesToday: number
+  newCustomersToday: number
+  newTutorsToday: number
+  newStaffToday: number
+}
+
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [classes, setClasses] = useState<Class[]>([])
@@ -88,6 +99,7 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [stats, setStats] = useState<Stats | null>(null)
 
   const [paymentForm, setPaymentForm] = useState({
     class_id: "",
@@ -247,6 +259,16 @@ export default function PaymentsPage() {
           max_fee: settingsData.max_fee?.toString() || "",
         })
       }
+
+      // Lấy thống kê
+      const { data: statsData, error: statsError } = await supabase
+        .from("admin_stats")
+        .select("*")
+        .single()
+
+      if (statsError) throw statsError
+
+      setStats(statsData || null)
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error)
       toast({
@@ -821,6 +843,48 @@ export default function PaymentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Thống kê */}
+      {stats && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tổng số lớp học</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalClasses}</div>
+              <p className="text-xs text-muted-foreground">+{stats.newClassesToday}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Tổng số khách hàng</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+              <p className="text-xs text-muted-foreground">+{stats.newCustomersToday}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Tổng số gia sư</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalTutors}</div>
+              <p className="text-xs text-muted-foreground">+{stats.newTutorsToday}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Tổng số nhân viên</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalStaff}</div>
+              <p className="text-xs text-muted-foreground">+{stats.newStaffToday}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

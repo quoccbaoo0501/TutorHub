@@ -429,10 +429,10 @@ export default function AdminStaffPage() {
       ) : (
         <>
           {/* Desktop view - Table */}
-          <div className="hidden md:block overflow-hidden rounded-lg border">
+          <div className="hidden md:block overflow-hidden rounded-lg border-2 border-cyan-400">
             <table className="w-full">
               <thead className="bg-muted/50">
-                <tr>
+                <tr className="border-b-2 border-cyan-300">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                     <button className="flex items-center gap-1" onClick={() => handleSort("full_name")}>
                       Tên nhân viên
@@ -458,7 +458,7 @@ export default function AdminStaffPage() {
               <tbody>
                 {filteredStaff.map((staff) => (
                   <tr key={staff.id} className="border-t hover:bg-muted/50">
-                    <td className="px-4 py-3 text-sm font-medium">{staff.full_name}</td>
+                    <td className="px-4 py-3 text-sm font-medium border-r-2 border-cyan-200">{staff.full_name}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{staff.email}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{staff.phone_number || "Chưa cập nhật"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
