@@ -445,9 +445,11 @@ export default function UserDashboard() {
                         <span role="img" aria-label="level">🏫</span>
                         <span className="font-semibold">Cấp độ:</span> <span>{getLevelText(classItem.level)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-base">
-                        <span role="img" aria-label="location">📍</span>
-                        <span className="font-semibold">Địa điểm:</span> <span>{classItem.district}, {classItem.province}</span>
+                      {/* Địa điểm */}
+                      <div className="flex items-start gap-2 text-base">
+                        <span role="img" aria-label="location" className="mt-0.5">📍</span>
+                        <span className="font-semibold mr-1 min-w-[70px]">Địa điểm:</span>
+                        <span className="break-words">{[classItem.district, classItem.province].filter(Boolean).join(", ")}</span>
                       </div>
                       <div className="flex items-center gap-2 text-base">
                         <span role="img" aria-label="schedule">📅</span>
@@ -458,22 +460,20 @@ export default function UserDashboard() {
                         <span className="font-semibold">Ngày tạo:</span> <span>{formatDate(classItem.created_at)}</span>
                       </div>
                       {/* Nút đăng ký hoặc hủy đăng ký dạy lớp */}
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex justify-center gap-2 mt-6">
                         <Button
                           variant={registeredClasses.includes(classItem.id) ? "outline" : "default"}
-                          size="sm"
-                          className={`flex-1 font-bold text-white ${
-                            registeredClasses.includes(classItem.id)
-                              ? 'bg-red-500 hover:bg-red-600 border-0 shadow-md'
-                              : 'bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 border-0 shadow-md'
-                          }`}
+                          size="lg"
+                          className={`min-w-[180px] px-6 py-2 font-bold text-white rounded-lg shadow-md transition-all duration-150
+                            ${registeredClasses.includes(classItem.id)
+                              ? 'bg-red-500 hover:bg-red-600 border-0'
+                              : 'bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 border-0'}
+                          `}
                           disabled={isCertificateApproved === null}
                           onClick={() => {
                             if (registeredClasses.includes(classItem.id)) {
-                              // Nếu đã đăng ký, cho phép hủy đăng ký
                               handleCancelRegistration(classItem.id)
                             } else {
-                              // Kiểm tra trạng thái chứng chỉ trước khi cho phép đăng ký
                               if (isCertificateApproved === null) {
                                 return
                               } else if (isCertificateApproved === false) {
@@ -490,14 +490,12 @@ export default function UserDashboard() {
                               ? "Hủy đăng ký"
                               : "Đăng ký dạy"}
                         </Button>
-
-                        {/* Nút thùng rác cho lớp đã đăng ký */}
                         {registeredClasses.includes(classItem.id) && (
                           <Button
                             variant="destructive"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleCancelRegistration(classItem.id)}
-                            className="px-3"
+                            className="rounded-full"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
