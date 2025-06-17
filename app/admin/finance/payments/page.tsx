@@ -40,7 +40,7 @@ interface Tutor {
 
 interface Contract {
   id: string
-  total_amount: number
+  fee: number // Sử dụng fee thay vì total_amount
   start_date: string
   end_date: string
   class_id?: string
@@ -100,6 +100,7 @@ export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [stats, setStats] = useState<Stats | null>(null)
+  const [availableClasses, setAvailableClasses] = useState<Class[]>([])
 
   const [paymentForm, setPaymentForm] = useState({
     class_id: "",
@@ -198,7 +199,7 @@ export default function PaymentsPage() {
           *,
           class:classes!payments_class_id_fkey(id, name, subject, status),
           tutor:tutors!payments_tutor_id_fkey(id, profiles!tutors_id_fkey(full_name, email)),
-          contract:contracts!payments_contract_id_fkey(id, total_amount, start_date, end_date)
+          contract:contracts!payments_contract_id_fkey(id, fee, start_date, end_date)
         `,
         )
         .order("created_at", { ascending: false })
@@ -212,6 +213,8 @@ export default function PaymentsPage() {
         .not("selected_tutor_id", "is", null)
         .eq("status", "matched")
 
+      console.log("Classes data:", classesData) // Debug log
+
       if (classesError) throw classesError
 
       // Lấy danh sách gia sư
@@ -224,7 +227,7 @@ export default function PaymentsPage() {
       // Lấy danh sách hợp đồng
       const { data: contractsData, error: contractsError } = await supabase
         .from("contracts")
-        .select("id, class_id, tutor_id, total_amount, start_date, end_date")
+        .select("id, class_id, tutor_id, fee, start_date, end_date")
         .eq("status", "active")
 
       if (contractsError) throw contractsError
@@ -240,6 +243,11 @@ export default function PaymentsPage() {
 
       setPayments(paymentsData || [])
       setClasses(classesData || [])
+
+      // Lọc ra những lớp chưa có phí môi giới
+      const classesWithPayments = paymentsData?.map((p) => p.class_id) || []
+      const availableClassesData = classesData?.filter((cls) => !classesWithPayments.includes(cls.id)) || []
+      setAvailableClasses(availableClassesData)
 
       // Fix tutors data structure
       const formattedTutors =
@@ -601,7 +609,7 @@ export default function PaymentsPage() {
                 onValueChange={(value) => {
                   setPaymentForm({ ...paymentForm, class_id: value })
                   // Tự động chọn gia sư của lớp
-                  const selectedClass = classes.find((c) => c.id === value)
+                  const selectedClass = availableClasses.find((c) => c.id === value)
                   if (selectedClass && selectedClass.selected_tutor_id) {
                     // Tìm hợp đồng tương ứng
                     const relatedContract = contracts.find(
@@ -612,7 +620,7 @@ export default function PaymentsPage() {
                       class_id: value,
                       tutor_id: selectedClass.selected_tutor_id || "",
                       contract_id: relatedContract?.id || "",
-                      contract_amount: relatedContract?.total_amount.toString() || "",
+                      contract_amount: relatedContract?.fee?.toString() || "",
                     }))
                   }
                 }}
@@ -621,7 +629,12 @@ export default function PaymentsPage() {
                   <SelectValue placeholder="Chọn lớp học" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((cls) => (
+                  {availableClasses.length === 0 && (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Không có lớp nào có thể tạo phí môi giới
+                    </div>
+                  )}
+                  {availableClasses.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name} - {cls.subject}
                     </SelectItem>
@@ -827,7 +840,7 @@ export default function PaymentsPage() {
                 <div>
                   <Label>Thông tin hợp đồng</Label>
                   <div className="mt-1 p-3 bg-muted rounded-md space-y-1">
-                    <div>Giá trị: {formatCurrency(selectedPayment.contract.total_amount)}</div>
+                    <div>Giá trị: {formatCurrency(selectedPayment.contract.fee)}</div>
                     <div>
                       Thời gian: {formatDate(selectedPayment.contract.start_date)} -{" "}
                       {formatDate(selectedPayment.contract.end_date)}

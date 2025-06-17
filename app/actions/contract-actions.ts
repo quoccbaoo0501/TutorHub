@@ -24,8 +24,9 @@ interface ContractData {
     email: string
     phone_number: string
     gender: string
-    education: string
-    experience: string
+    education?: string
+    experience?: string
+    subjects?: string
   }
   customerInfo: {
     id: string

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import type React from "react"
-import { BarChart3, Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home , Calendar } from "lucide-react"
+import { Users, BookOpen, FileText, DollarSign, Settings, User, LogOut, Home, Calendar } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"
@@ -14,8 +14,12 @@ import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialo
 const adminNavItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: Home },
   { name: "Quản lí nhân viên", href: "/admin/staff", icon: User },
-  { name: "Xếp lịch nhân viên", href: "/admin/schedule", icon: Calendar},
+  { name: "Xếp lịch nhân viên", href: "/admin/schedule", icon: Calendar },
   { name: "Quản lí tài chính", href: "/admin/finance", icon: DollarSign },
+  // Thêm các mục của staff
+  { name: "Quản lí lớp", href: "/admin/class", icon: BookOpen },
+  { name: "Quản lí khách hàng", href: "/admin/customers", icon: Users },
+  { name: "Quản lí gia sư", href: "/admin/tutors", icon: User },
 ]
 
 // Danh sách các mục điều hướng cho trang quản trị - STAFF

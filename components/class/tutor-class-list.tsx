@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import ContractDialog from "../dialogs/contract-dialog"
+import PaymentFeeDialog from "../dialogs/payment-fee-dialog"
 
 // Định nghĩa kiểu dữ liệu cho lớp học
 interface ClassItem {
@@ -42,6 +43,8 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
   // Remove: const entire useEffect block
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false)
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+  const [isPaymentFeeDialogOpen, setIsPaymentFeeDialogOpen] = useState(false)
+  const [selectedClassForFee, setSelectedClassForFee] = useState<string | null>(null)
 
   // Hàm chuyển đổi mã cấp độ thành văn bản hiển thị tiếng Việt
   const getLevelText = (level: string) => {
@@ -75,6 +78,12 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
   const handleOpenContractDialog = (classId: string) => {
     setSelectedClassId(classId)
     setIsContractDialogOpen(true)
+  }
+
+  // Hàm mở dialog phí môi giới
+  const handleOpenPaymentFeeDialog = (classId: string) => {
+    setSelectedClassForFee(classId)
+    setIsPaymentFeeDialogOpen(true)
   }
 
   // useEffect tải dữ liệu ban đầu khi component được tải
@@ -175,6 +184,17 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
                         Xem hợp đồng
                       </Button>
                     </div>
+                    {/* Payment Fee button */}
+                    <div className="pt-2">
+                      <Button
+                        onClick={() => handleOpenPaymentFeeDialog(application.classes.id)}
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Xem phí môi giới
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>
@@ -185,6 +205,14 @@ export default function TutorClassList({ tutorApplications, onRefresh }: TutorCl
       {/* Contract Dialog */}
       {selectedClassId && (
         <ContractDialog open={isContractDialogOpen} onOpenChange={setIsContractDialogOpen} classId={selectedClassId} />
+      )}
+      {/* Payment Fee Dialog */}
+      {selectedClassForFee && (
+        <PaymentFeeDialog
+          open={isPaymentFeeDialogOpen}
+          onOpenChange={setIsPaymentFeeDialogOpen}
+          classId={selectedClassForFee}
+        />
       )}
     </div>
   )
