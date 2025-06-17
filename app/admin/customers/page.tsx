@@ -30,6 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DialogFooter } from "@/components/ui/dialog"
+import { createClient } from "@supabase/supabase-js"
+import { revalidatePath } from "next/cache"
+import { updateCustomer, type UpdateCustomerData } from "@/app/actions/customer-actions"
 
 // Định nghĩa kiểu dữ liệu cho khách hàng
 interface Customer {
@@ -69,6 +72,14 @@ interface CustomerFormData {
   address: string
   gender: string
 }
+
+// Tạo Supabase client với service role key cho admin operations
+const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 export default function AdminCustomersPage() {
   // State cho dữ liệu và UI
@@ -426,35 +437,36 @@ export default function AdminCustomersPage() {
 
   // handleSubmitForm: gọi await fetchCustomers() trước khi đóng dialog
   const handleSubmitForm = async () => {
-    if (!validateForm() || !editingCustomer) return
+    if (!validateForm()) return
 
     setIsProcessing(true)
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: formData.full_name,
-          phone_number: formData.phone_number || null,
-          address: formData.address || null,
-          gender: formData.gender,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingCustomer.id)
+      const updateData: UpdateCustomerData = {
+        id: editingCustomer.id,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number || undefined,
+        address: formData.address || undefined,
+        gender: formData.gender,
+      }
 
-      if (error) throw error
+      const result = await updateCustomer(updateData)
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
 
       toast({
         title: "Thành công",
         description: "Cập nhật thông tin khách hàng thành công.",
       })
 
-      await fetchCustomers() // Đảm bảo lấy lại dữ liệu mới nhất
       setIsFormDialogOpen(false)
-    } catch (error) {
+      fetchCustomers()
+    } catch (error: any) {
       console.error("Lỗi khi cập nhật khách hàng:", error)
       toast({
         title: "Lỗi",
-        description: "Không thể cập nhật thông tin khách hàng. Vui lòng thử lại sau.",
+        description: error.message || "Không thể cập nhật thông tin khách hàng. Vui lòng thử lại sau.",
         variant: "destructive",
       })
     } finally {

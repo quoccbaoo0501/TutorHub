@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { createClient } from "@supabase/supabase-js"
+import { revalidatePath } from "next/cache"
+import { updateTutor, type UpdateTutorData } from "@/app/actions/tutor-actions"
 
 // Định nghĩa kiểu dữ liệu cho gia sư
 interface Tutor {
@@ -54,6 +57,14 @@ interface TutorFormData {
   experience: string
   subjects: string
 }
+
+// Tạo Supabase client với service role key cho admin operations
+const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 export default function AdminTutorsPage() {
   // State cho dữ liệu và UI
@@ -519,36 +530,27 @@ export default function AdminTutorsPage() {
 
   // Hàm xử lý submit form
   const handleSubmitForm = async () => {
-    if (!validateForm() || !editingTutor) return
+    if (!validateForm()) return
 
     setIsProcessing(true)
     try {
-      // Cập nhật thông tin profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: formData.full_name,
-          phone_number: formData.phone_number || null,
-          address: formData.address || null,
-          gender: formData.gender,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingTutor.profiles.id)
+      const updateData: UpdateTutorData = {
+        id: editingTutor.id,
+        profile_id: editingTutor.profiles.id,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number || undefined,
+        address: formData.address || undefined,
+        gender: formData.gender,
+        education: formData.education,
+        experience: formData.experience,
+        subjects: formData.subjects,
+      }
 
-      if (profileError) throw profileError
+      const result = await updateTutor(updateData)
 
-      // Cập nhật thông tin gia sư
-      const { error: tutorError } = await supabase
-        .from("tutors")
-        .update({
-          education: formData.education,
-          experience: formData.experience,
-          subjects: formData.subjects,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingTutor.id)
-
-      if (tutorError) throw tutorError
+      if (!result.success) {
+        throw new Error(result.error)
+      }
 
       toast({
         title: "Thành công",
@@ -557,11 +559,11 @@ export default function AdminTutorsPage() {
 
       setIsFormDialogOpen(false)
       fetchTutors()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi khi cập nhật gia sư:", error)
       toast({
         title: "Lỗi",
-        description: "Không thể cập nhật thông tin gia sư. Vui lòng thử lại sau.",
+        description: error.message || "Không thể cập nhật thông tin gia sư. Vui lòng thử lại sau.",
         variant: "destructive",
       })
     } finally {
@@ -955,10 +957,12 @@ export default function AdminTutorsPage() {
 
       {/* Dialog form chỉnh sửa gia sư */}
       <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa thông tin gia sư</DialogTitle>
-            <DialogDescription>Cập nhật thông tin gia sư</DialogDescription>
+            <DialogTitle>{editingTutor ? "Chỉnh sửa gia sư" : "Thêm gia sư mới"}</DialogTitle>
+            <DialogDescription>
+              {editingTutor ? "Cập nhật thông tin gia sư" : "Điền thông tin để tạo gia sư mới"}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
