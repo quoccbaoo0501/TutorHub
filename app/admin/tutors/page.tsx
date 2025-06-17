@@ -58,14 +58,6 @@ interface TutorFormData {
   subjects: string
 }
 
-// Tạo Supabase client với service role key cho admin operations
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
-
 export default function AdminTutorsPage() {
   // State cho dữ liệu và UI
   const [tutors, setTutors] = useState<Tutor[]>([])
@@ -530,7 +522,7 @@ export default function AdminTutorsPage() {
 
   // Hàm xử lý submit form
   const handleSubmitForm = async () => {
-    if (!validateForm()) return
+    if (!validateForm() || !editingTutor) return;
 
     setIsProcessing(true)
     try {
@@ -570,6 +562,14 @@ export default function AdminTutorsPage() {
       setIsProcessing(false)
     }
   }
+
+  // Thêm hàm fetchTutors nếu chưa có
+  const fetchTutors = async () => {
+    // TODO: implement logic to fetch tutors and update setTutors
+    // Ví dụ:
+    // const { data } = await supabase.from('tutors').select('*');
+    // setTutors(data || []);
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

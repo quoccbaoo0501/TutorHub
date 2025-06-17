@@ -30,8 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DialogFooter } from "@/components/ui/dialog"
-import { createClient } from "@supabase/supabase-js"
-import { revalidatePath } from "next/cache"
 import { updateCustomer, type UpdateCustomerData } from "@/app/actions/customer-actions"
 
 // Định nghĩa kiểu dữ liệu cho khách hàng
@@ -72,14 +70,6 @@ interface CustomerFormData {
   address: string
   gender: string
 }
-
-// Tạo Supabase client với service role key cho admin operations
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 export default function AdminCustomersPage() {
   // State cho dữ liệu và UI
@@ -437,7 +427,7 @@ export default function AdminCustomersPage() {
 
   // handleSubmitForm: gọi await fetchCustomers() trước khi đóng dialog
   const handleSubmitForm = async () => {
-    if (!validateForm()) return
+    if (!validateForm() || !editingCustomer) return
 
     setIsProcessing(true)
     try {
