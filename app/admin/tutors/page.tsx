@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Eye, Check, X, Trash2 } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Eye, Check, X, Trash2, Edit } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Loader2 } from "lucide-react"
@@ -21,6 +21,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { createClient } from "@supabase/supabase-js"
+import { revalidatePath } from "next/cache"
+import { updateTutor, type UpdateTutorData } from "@/app/actions/tutor-actions"
 
 // Định nghĩa kiểu dữ liệu cho gia sư
 interface Tutor {
@@ -40,6 +45,17 @@ interface Tutor {
     gender?: string
     id: string
   }
+}
+
+// Định nghĩa kiểu dữ liệu cho form chỉnh sửa gia sư
+interface TutorFormData {
+  full_name: string
+  phone_number: string
+  address: string
+  gender: string
+  education: string
+  experience: string
+  subjects: string
 }
 
 export default function AdminTutorsPage() {
@@ -62,6 +78,20 @@ export default function AdminTutorsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [tutorToDelete, setTutorToDelete] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // State cho dialog form chỉnh sửa
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
+  const [editingTutor, setEditingTutor] = useState<Tutor | null>(null)
+  const [formData, setFormData] = useState<TutorFormData>({
+    full_name: "",
+    phone_number: "",
+    address: "",
+    gender: "male",
+    education: "",
+    experience: "",
+    subjects: "",
+  })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const { toast } = useToast()
   const supabase = createClientComponentClient()
@@ -128,6 +158,22 @@ export default function AdminTutorsPage() {
       const imageUrl = await getCertificateImageUrl(tutor.certificate_image)
       setCertificateImageUrl(imageUrl)
     }
+  }
+
+  // Hàm mở dialog form chỉnh sửa
+  const handleOpenEditForm = (tutor: Tutor) => {
+    setEditingTutor(tutor)
+    setFormData({
+      full_name: tutor.profiles.full_name,
+      phone_number: tutor.profiles.phone_number || "",
+      address: tutor.profiles.address || "",
+      gender: tutor.profiles.gender || "male",
+      education: tutor.education || "",
+      experience: tutor.experience || "",
+      subjects: tutor.subjects || "",
+    })
+    setFormErrors({})
+    setIsFormDialogOpen(true)
   }
 
   // Tải dữ liệu gia sư từ Supabase
@@ -450,6 +496,81 @@ export default function AdminTutorsPage() {
     getUserRole()
   }, [supabase])
 
+  // Hàm validate form
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+
+    if (!formData.full_name.trim()) {
+      errors.full_name = "Họ tên không được để trống"
+    }
+
+    if (!formData.education.trim()) {
+      errors.education = "Học vấn không được để trống"
+    }
+
+    if (!formData.experience.trim()) {
+      errors.experience = "Kinh nghiệm không được để trống"
+    }
+
+    if (!formData.subjects.trim()) {
+      errors.subjects = "Môn dạy không được để trống"
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Hàm xử lý submit form
+  const handleSubmitForm = async () => {
+    if (!validateForm() || !editingTutor) return;
+
+    setIsProcessing(true)
+    try {
+      const updateData: UpdateTutorData = {
+        id: editingTutor.id,
+        profile_id: editingTutor.profiles.id,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number || undefined,
+        address: formData.address || undefined,
+        gender: formData.gender,
+        education: formData.education,
+        experience: formData.experience,
+        subjects: formData.subjects,
+      }
+
+      const result = await updateTutor(updateData)
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: "Thành công",
+        description: "Cập nhật thông tin gia sư thành công.",
+      })
+
+      setIsFormDialogOpen(false)
+      fetchTutors()
+    } catch (error: any) {
+      console.error("Lỗi khi cập nhật gia sư:", error)
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể cập nhật thông tin gia sư. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Thêm hàm fetchTutors nếu chưa có
+  const fetchTutors = async () => {
+    // TODO: implement logic to fetch tutors and update setTutors
+    // Ví dụ:
+    // const { data } = await supabase.from('tutors').select('*');
+    // setTutors(data || []);
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
@@ -540,6 +661,11 @@ export default function AdminTutorsPage() {
                         <Button size="sm" variant="outline" onClick={() => handleOpenDetails(tutor)}>
                           Chi tiết
                         </Button>
+                        {(userRole === "admin" || userRole === "staff") && (
+                          <Button size="sm" variant="outline" onClick={() => handleOpenEditForm(tutor)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
                         {!tutor.certificate_approve ? (
                           <Button
                             size="sm"
@@ -603,6 +729,12 @@ export default function AdminTutorsPage() {
                   <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenDetails(tutor)}>
                     Chi tiết
                   </Button>
+                  {(userRole === "admin" || userRole === "staff") && (
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenEditForm(tutor)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Sửa
+                    </Button>
+                  )}
                   {!tutor.certificate_approve ? (
                     <Button
                       size="sm"
@@ -822,6 +954,144 @@ export default function AdminTutorsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog form chỉnh sửa gia sư */}
+      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTutor ? "Chỉnh sửa gia sư" : "Thêm gia sư mới"}</DialogTitle>
+            <DialogDescription>
+              {editingTutor ? "Cập nhật thông tin gia sư" : "Điền thông tin để tạo gia sư mới"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">
+                Họ và tên <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Nguyễn Văn A"
+                disabled={isProcessing}
+              />
+              {formErrors.full_name && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formErrors.full_name}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone_number">Số điện thoại</Label>
+              <Input
+                id="phone_number"
+                value={formData.phone_number}
+                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                placeholder="0123456789"
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="123 Đường ABC, Quận XYZ"
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Giới tính</Label>
+              <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn giới tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Nam</SelectItem>
+                  <SelectItem value="female">Nữ</SelectItem>
+                  <SelectItem value="other">Khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="education">
+                Học vấn <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="education"
+                value={formData.education}
+                onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                placeholder="Ví dụ: Đại học Bách Khoa Hà Nội"
+                disabled={isProcessing}
+              />
+              {formErrors.education && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formErrors.education}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="experience">
+                Kinh nghiệm <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="experience"
+                value={formData.experience}
+                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                placeholder="Ví dụ: 2 năm kinh nghiệm dạy Toán"
+                disabled={isProcessing}
+              />
+              {formErrors.experience && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formErrors.experience}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="subjects">
+                Môn dạy <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="subjects"
+                value={formData.subjects}
+                onChange={(e) => setFormData({ ...formData, subjects: e.target.value })}
+                placeholder="Ví dụ: Toán, Lý, Hóa"
+                disabled={isProcessing}
+              />
+              {formErrors.subjects && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formErrors.subjects}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFormDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button onClick={handleSubmitForm} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Cập nhật"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

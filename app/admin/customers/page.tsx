@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Trash2 } from "lucide-react"
+import { Search, ArrowUpDown, Calendar, User, Phone, MapPin, FileText, Trash2, Edit } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +20,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { DialogFooter } from "@/components/ui/dialog"
+import { updateCustomer, type UpdateCustomerData } from "@/app/actions/customer-actions"
 
 // Định nghĩa kiểu dữ liệu cho khách hàng
 interface Customer {
@@ -52,6 +63,14 @@ interface Customer {
   }>
 }
 
+// Định nghĩa kiểu dữ liệu cho form chỉnh sửa khách hàng
+interface CustomerFormData {
+  full_name: string
+  phone_number: string
+  address: string
+  gender: string
+}
+
 export default function AdminCustomersPage() {
   // State cho dữ liệu và UI
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -74,6 +93,17 @@ export default function AdminCustomersPage() {
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // State cho dialog form chỉnh sửa
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [formData, setFormData] = useState<CustomerFormData>({
+    full_name: "",
+    phone_number: "",
+    address: "",
+    gender: "male",
+  })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   // Hàm chuyển đổi mã giới tính thành văn bản hiển thị
   const getGenderText = (gender: string | undefined | null) => {
@@ -116,6 +146,19 @@ export default function AdminCustomersPage() {
   const handleOpenDetails = (customer: Customer) => {
     setSelectedCustomer(customer)
     setIsDialogOpen(true)
+  }
+
+  // Hàm mở dialog form chỉnh sửa
+  const handleOpenEditForm = (customer: Customer) => {
+    setEditingCustomer(customer)
+    setFormData({
+      full_name: customer.full_name,
+      phone_number: customer.phone_number || "",
+      address: customer.address || "",
+      gender: customer.gender || "male",
+    })
+    setFormErrors({})
+    setIsFormDialogOpen(true)
   }
 
   // Hàm lấy màu badge dựa trên trạng thái lớp
@@ -197,117 +240,118 @@ export default function AdminCustomersPage() {
     }
   }
 
-  // Tải dữ liệu khách hàng từ Supabase
-  useEffect(() => {
-    async function fetchCustomers() {
-      setIsLoading(true)
-      try {
-        // Check authentication first
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
-        if (sessionError) {
-          console.error("Session error:", sessionError)
-          window.location.href = "/login"
-          return
-        }
-        if (!session) {
-          window.location.href = "/login"
-          return
-        }
+  // Move fetchCustomers out of useEffect so it can be called anywhere
+  const fetchCustomers = async () => {
+    setIsLoading(true)
+    try {
+      // Check authentication first
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error("Session error:", sessionError)
+        window.location.href = "/login"
+        return
+      }
+      if (!session) {
+        window.location.href = "/login"
+        return
+      }
 
-        const { data: customersData, error: customersError } = await supabase
-          .from("profiles")
-          .select(`
-            id,
-            full_name,
-            email,
-            phone_number,
-            address,
-            gender,
-            created_at
-          `)
-          .eq("role", "customer")
-          .order("created_at", { ascending: false })
+      const { data: customersData, error: customersError } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone_number,
+          address,
+          gender,
+          created_at
+        `)
+        .eq("role", "customer")
+        .order("created_at", { ascending: false })
 
-        if (customersError) {
-          throw customersError
-        }
+      if (customersError) {
+        throw customersError
+      }
 
-        // Lấy thông tin lớp học cho mỗi khách hàng
-        const customersWithClasses = await Promise.all(
-          (customersData || []).map(async (customer) => {
-            const { data: classesData } = await supabase
-              .from("classes")
-              .select(`
-        id,
-        name,
-        subject,
-        level,
-        province,
-        district,
-        address,
-        schedule,
-        status,
-        created_at,
-        selected_tutor_id
-      `)
-              .eq("customer_id", customer.id)
-              .order("created_at", { ascending: false })
+      // Lấy thông tin lớp học cho mỗi khách hàng
+      const customersWithClasses = await Promise.all(
+        (customersData || []).map(async (customer) => {
+          const { data: classesData } = await supabase
+            .from("classes")
+            .select(`
+      id,
+      name,
+      subject,
+      level,
+      province,
+      district,
+      address,
+      schedule,
+      status,
+      created_at,
+      selected_tutor_id
+    `)
+            .eq("customer_id", customer.id)
+            .order("created_at", { ascending: false })
 
-            // Get tutor information separately for matched classes
-            const classesWithTutors = await Promise.all(
-              (classesData || []).map(async (cls) => {
-                if (cls.selected_tutor_id && cls.status === "matched") {
-                  const { data: tutorData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, email, phone_number")
-                    .eq("id", cls.selected_tutor_id)
-                    .single()
+          // Get tutor information separately for matched classes
+          const classesWithTutors = await Promise.all(
+            (classesData || []).map(async (cls) => {
+              if (cls.selected_tutor_id && cls.status === "matched") {
+                const { data: tutorData } = await supabase
+                  .from("profiles")
+                  .select("id, full_name, email, phone_number")
+                  .eq("id", cls.selected_tutor_id)
+                  .single()
 
-                  return {
-                    ...cls,
-                    selected_tutor: tutorData
-                      ? {
-                          id: tutorData.id,
-                          profiles: {
-                            full_name: tutorData.full_name,
-                            email: tutorData.email,
-                            phone_number: tutorData.phone_number,
-                          },
-                        }
-                      : undefined,
-                  }
-                }
                 return {
                   ...cls,
-                  selected_tutor: undefined,
+                  selected_tutor: tutorData
+                    ? {
+                        id: tutorData.id,
+                        profiles: {
+                          full_name: tutorData.full_name,
+                          email: tutorData.email,
+                          phone_number: tutorData.phone_number,
+                        },
+                      }
+                    : undefined,
                 }
-              }),
-            )
+              }
+              return {
+                ...cls,
+                selected_tutor: undefined,
+              }
+            }),
+          )
 
-            return {
-              ...customer,
-              classes: classesWithTutors,
-            }
-          }),
-        )
+          return {
+            ...customer,
+            classes: classesWithTutors,
+          }
+        }),
+      )
 
-        setCustomers(customersWithClasses)
-        setFilteredCustomers(customersWithClasses)
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách khách hàng:", error)
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách khách hàng. Vui lòng thử lại sau.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+      setCustomers(customersWithClasses)
+      setFilteredCustomers(customersWithClasses)
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách khách hàng:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách khách hàng. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  // useEffect chỉ gọi fetchCustomers
+  useEffect(() => {
     fetchCustomers()
   }, [supabase, toast])
 
@@ -368,6 +412,57 @@ export default function AdminCustomersPage() {
 
     setFilteredCustomers(result)
   }, [customers, searchTerm, sortConfig])
+
+  // Hàm validate form
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+
+    if (!formData.full_name.trim()) {
+      errors.full_name = "Họ tên không được để trống"
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // handleSubmitForm: gọi await fetchCustomers() trước khi đóng dialog
+  const handleSubmitForm = async () => {
+    if (!validateForm() || !editingCustomer) return
+
+    setIsProcessing(true)
+    try {
+      const updateData: UpdateCustomerData = {
+        id: editingCustomer.id,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number || undefined,
+        address: formData.address || undefined,
+        gender: formData.gender,
+      }
+
+      const result = await updateCustomer(updateData)
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: "Thành công",
+        description: "Cập nhật thông tin khách hàng thành công.",
+      })
+
+      setIsFormDialogOpen(false)
+      fetchCustomers()
+    } catch (error: any) {
+      console.error("Lỗi khi cập nhật khách hàng:", error)
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể cập nhật thông tin khách hàng. Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -438,6 +533,11 @@ export default function AdminCustomersPage() {
                         <Button size="sm" variant="outline" onClick={() => handleOpenDetails(customer)}>
                           Chi tiết
                         </Button>
+                        {(userRole === "admin" || userRole === "staff") && (
+                          <Button size="sm" variant="outline" onClick={() => handleOpenEditForm(customer)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
                         {userRole === "admin" && (
                           <Button
                             size="sm"
@@ -476,6 +576,12 @@ export default function AdminCustomersPage() {
                   <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenDetails(customer)}>
                     Chi tiết
                   </Button>
+                  {(userRole === "admin" || userRole === "staff") && (
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => handleOpenEditForm(customer)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Sửa
+                    </Button>
+                  )}
                   {userRole === "admin" && (
                     <Button
                       size="sm"
@@ -678,6 +784,88 @@ export default function AdminCustomersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog form chỉnh sửa khách hàng */}
+      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin khách hàng</DialogTitle>
+            <DialogDescription>Cập nhật thông tin khách hàng</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">
+                Họ và tên <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Nguyễn Văn A"
+                disabled={isProcessing}
+              />
+              {formErrors.full_name && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formErrors.full_name}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone_number">Số điện thoại</Label>
+              <Input
+                id="phone_number"
+                value={formData.phone_number}
+                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                placeholder="0123456789"
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="123 Đường ABC, Quận XYZ"
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Giới tính</Label>
+              <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn giới tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Nam</SelectItem>
+                  <SelectItem value="female">Nữ</SelectItem>
+                  <SelectItem value="other">Khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFormDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button onClick={handleSubmitForm} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Cập nhật"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

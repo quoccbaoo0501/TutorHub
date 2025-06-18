@@ -144,7 +144,7 @@ const AdminSidebar: React.FC = () => {
       <div className="admin-title flex justify-center items-center border-b border-border py-8 px-4">
         <div className="bg-orange-200 rounded-xl px-6 py-3 shadow text-center w-full">
           <span className="text-2xl font-bold font-sans text-orange-700 drop-shadow-sm tracking-wide">
-            {userRole === "staff" ? "Staff Panel" : "Admin Panel"}
+            {userRole === "staff" ? "Nhân viên" : "Quản lý trung tâm"}
           </span>
         </div>
       </div>
