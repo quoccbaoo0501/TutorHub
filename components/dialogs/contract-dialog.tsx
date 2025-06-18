@@ -83,6 +83,7 @@ export default function ContractDialog({
               full_name,
               email,
               phone_number,
+              address,
               gender
             )
           `)
@@ -187,14 +188,13 @@ export default function ContractDialog({
                   <span className="font-medium">
                     {tutor?.profiles?.full_name || tutor?.full_name || "................................"}
                   </span>{" "}
-                  Sinh năm: <span className="font-medium">{tutor?.birth_year || "............"}</span> Quê:{" "}
-                  <span className="font-medium">{tutor?.hometown || "........................"}</span>
+                  
                 </p>
                 <p>
-                  ✓ CMND số: <span className="font-medium">{tutor?.id_number || "........................"}</span> Địa
+                  ✓ Địa
                   chỉ hiện tại:{" "}
                   <span className="font-medium">
-                    {tutor?.address || "........................................................................"}
+                    {tutor?.profiles?.address || "........................................................................"}
                   </span>
                 </p>
                 <p>
